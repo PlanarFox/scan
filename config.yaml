@@ -1,0 +1,8 @@
+scheduler:
+  addr: 'localhost'
+  port: '80'
+type: 'zmap'
+args:
+  probe:
+    - 'localhost'
+  target: 'list.txt'
