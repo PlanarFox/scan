@@ -1,1 +1,3 @@
 .vscode/*
+*zmap*
+*__pycache__*

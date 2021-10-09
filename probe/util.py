@@ -1,6 +1,8 @@
 import socket
 from urllib.parse import urlparse
 import requests
+from flask import Response
+import subprocess
 
 def api_local_host():
     return 'localhost'
@@ -67,4 +69,27 @@ def api_has_platform(hostport, timeout=5):
                     timeout=timeout)
 
     return r.status_code == 200
- 
+
+def json_return(data):
+    return Response(data + '\n', mimetype='application/json')
+
+def bad_request(message='Bad Request'):
+    return Response(message + '\n', status=400, mimetype='text/plain')
+    
+def ok(message="OK", mimetype=None):
+    return Response(message + '\n', status=200, mimetype=mimetype)
+
+def getv6addr():
+    try:
+        t1 = subprocess.run('ifconfig', shell=True, stdout=subprocess.PIPE, encoding='utf-8')
+    except Exception as e:
+        return False, 'Failed to run ifconfig:'+e.args
+    result = t1.stdout.split('\n')
+    result = list(map(str.strip, result))
+    ip = []
+    for item in result:
+        if item[:5] == 'inet6' and ('global' in item or 'Global' in item):
+            ip.append(item.split()[1])
+    if len(ip) == 0:
+        return False, 'Host don\'t have ipv6 address.'
+    return True, ip

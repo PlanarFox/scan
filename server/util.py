@@ -1,6 +1,7 @@
 import socket
 from urllib.parse import urlparse
 import requests
+from flask import Response
 
 def api_local_host():
     return 'localhost'
@@ -67,4 +68,12 @@ def api_has_platform(hostport, timeout=5):
                     timeout=timeout)
 
     return r.status_code == 200
- 
+
+def json_return(data):
+    return Response(data + '\n', mimetype='application/json')
+
+def bad_request(message='Bad Request'):
+    return Response(message + '\n', status=400, mimetype='text/plain')
+    
+def ok(message="OK", mimetype=None):
+    return Response(message + '\n', status=200, mimetype=mimetype)
