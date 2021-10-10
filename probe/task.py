@@ -27,7 +27,10 @@ def receive_task(task_type):
         if uuid is None:
             return util.bad_request('A specify uuid is needed.')
 
-        cwd = os.path.join(os.getcwd(), task_type)
+        cwd = os.path.join(os.getcwd(), 'data')
+        if not os.path.isdir(cwd):
+            os.mkdir(cwd)
+        cwd = os.path.join(cwd, task_type)
         if not os.path.isdir(cwd):
             os.mkdir(cwd)
         cwd = os.path.join(cwd, uuid)

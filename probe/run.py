@@ -11,7 +11,6 @@ def zmap(cwd, uuid, config, ip, myaddr, **kw):
     command += ' --ipv6-source-ip=\"' + ip[0] + '\"'
     command += ' --ipv6-target-file=\"' + os.path.join(cwd, 'target.txt') + '\"'
     command += ' -o \"' + os.path.join(cwd, 'output.csv') + '\"'
-    print(command)
     result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf-8', check=False)
 
     with open(os.path.join(cwd, 'output.csv'), 'r') as f:

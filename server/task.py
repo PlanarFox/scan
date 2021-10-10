@@ -35,7 +35,11 @@ def create_task():
     if not valid:
         return util.bad_request(message=message)
     
-    cwd = os.path.join(os.getcwd(), config['type'])
+    cwd = os.path.join(os.getcwd(), 'data')
+    if not os.path.isdir(cwd):
+        os.mkdir(cwd)
+
+    cwd = os.path.join(cwd, config['type'])
     if not os.path.isdir(cwd):
         os.mkdir(cwd)
 
@@ -60,7 +64,7 @@ def create_task():
     
 @app.route('/myplatform/result/<task_type>/<task_id>', methods=['GET'])
 def return_result(task_type, task_id):
-    cwd = os.path.join(os.path.join(os.getcwd(), task_type), task_id)
+    cwd = os.path.join(os.path.join(os.path.join(os.getcwd(), 'data'), task_type), task_id)
     if not os.path.isdir(cwd):
         return util.bad_request('Invalid task id.')
     isdone = True

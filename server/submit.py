@@ -21,7 +21,7 @@ def submition_recv(task_type):
     uuid = args['uuid']
     probe = args['addr']
 
-    cwd = os.path.join(os.path.join(os.getcwd(), task_type), uuid)
+    cwd = os.path.join(os.path.join(os.path.join(os.getcwd(), 'data'), task_type), uuid)
     if not os.path.isdir(cwd):
         return util.bad_request('Unknown task.')
     if not os.path.isdir(os.path.join(cwd, probe)):
