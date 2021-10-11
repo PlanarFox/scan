@@ -13,16 +13,17 @@ def zmap(cwd, uuid, config, ip, myaddr, **kw):
     command += ' -o \"' + os.path.join(cwd, 'output.csv') + '\"'
     result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf-8', check=False)
 
-    with open(os.path.join(cwd, 'output.csv'), 'r') as f:
-        f.readline()
-        result_addr = f.read()
+    #with open(os.path.join(cwd, 'output.csv'), 'r') as f:
+    #    f.readline()
+    #    result_addr = f.read()
         # May cause memory error when output file is too large
     
     url = util.api_url(config['scheduler']['addr'], '/submit/zmap', config['scheduler']['port'])
     for i in range(5):
         try:
-            r = requests.post(url, files = {'file':result_addr.encode('utf-8')},
-                                data = {'data':json.dumps({'uuid':uuid, 'addr':myaddr})})
+            with open(os.path.join(cwd, 'output.csv'), 'rb') as f:
+                r = requests.post(url, files = {'file':f},
+                                    data = {'data':json.dumps({'uuid':uuid, 'addr':myaddr})})
             if r.status_code == 200:
                 break
         except:

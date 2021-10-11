@@ -27,7 +27,9 @@ def submition_recv(task_type):
     if not os.path.isdir(os.path.join(cwd, probe)):
         return util.bad_request('Unknown probe.')
 
-    valid, message = getattr(submit_proc, task_type)(cwd, uuid, probe, data)
+    data.save(os.path.join(os.path.join(cwd, probe), 'tmp_data'))
+
+    valid, message = getattr(submit_proc, task_type)(cwd, uuid, probe)
 
     if not valid:
         return util.bad_request(message=message)

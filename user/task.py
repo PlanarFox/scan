@@ -26,7 +26,6 @@ if not util.api_has_platform(server + ':' + port):
     raise ValueError('Platform Server Error.')
 
 task_url = util.api_url(server, '/tasks', port)
-print('get task url:', task_url)
 if config['type'] == 'zmap':
     with open(config['args']['target'], 'rb') as f:
         r = requests.post(url = task_url, data={'data':json.dumps({'config':config})}, files={'file':f})

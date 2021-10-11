@@ -37,8 +37,7 @@ def receive_task(task_type):
         if not os.path.isdir(cwd):
             os.mkdir(cwd)
 
-        with open(os.path.join(cwd, 'data'), 'wb') as f:
-            f.write(data.stream.read())
+        data.save(os.path.join(cwd, 'data'))
         
         valid, message = getattr(prepare, task_type)(cwd, uuid, config.get('config', None), config.get('probe'))
 

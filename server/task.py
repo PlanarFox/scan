@@ -25,8 +25,6 @@ def create_task():
         data = request.files['file']
     except Exception as e:
         return util.bad_request('Fail when loading data file:' + e.args)
-    #for line in data:
-    #    print(line.decode('ascii').strip())
     try:
         valid, message = getattr(args_is_valid, config['type'])(config['args'])
     except AttributeError:
@@ -53,8 +51,7 @@ def create_task():
     f.write(json.dumps(config))
     f.close()
 
-    with open(os.path.join(cwd, 'data'), 'wb') as f:
-        f.write(data.stream.read())
+    data.save(os.path.join(cwd, 'data'))
 
     valid, message = getattr(task_creation, config['type'])(cwd, config, task_id)
 

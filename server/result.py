@@ -19,9 +19,14 @@ def zmap(cwd):
                 path = os.path.join(cwd, item)
                 if os.path.isdir(path):
                     with open(os.path.join(path, 'result.txt'), 'r') as fp:
-                        for line in fp:
+                        fp.readline()
+                        while True:
+                            line = fp.readline()
+                            if not line:
+                                break
                             f.writelines(line)
+                        
     except Exception as e:
-        return False, e.args
+        return False, str(e)
     
     return True, None
