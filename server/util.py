@@ -2,6 +2,7 @@ import socket
 from urllib.parse import urlparse
 import requests
 from flask import Response
+import hashlib
 
 def api_local_host():
     return 'localhost'
@@ -77,3 +78,19 @@ def bad_request(message='Bad Request'):
     
 def ok(message="OK", mimetype=None):
     return Response(message + '\n', status=200, mimetype=mimetype)
+
+def gen_md5(path):
+    with open(path, 'rb') as f:
+        md5 = hashlib.md5()
+        while True:
+            chunk = f.read(2024)
+            if not chunk:
+                break
+            md5.update(chunk)
+        return md5.hexdigest()
+
+def integrity_check(path, target_md5):
+    md5 = gen_md5(path)
+    if md5 == target_md5:
+        return True
+    return False

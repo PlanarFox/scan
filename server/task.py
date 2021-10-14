@@ -18,6 +18,7 @@ def hello():
 def create_task():
     try:
         config = json.loads(request.form['data'])
+        md5 = config['md5']
         config = config['config']
     except Exception as e:
         return util.bad_request('Config must be in json format:' + e.args)
@@ -52,6 +53,8 @@ def create_task():
     f.close()
 
     data.save(os.path.join(cwd, 'data'))
+    if not util.integrity_check(os.path.join(cwd, 'data'), md5):
+        return util.bad_request('File is broken.')
 
     valid, message = getattr(task_creation, config['type'])(cwd, config, task_id)
 

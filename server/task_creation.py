@@ -1,4 +1,3 @@
-from io import StringIO
 import json
 import os
 import requests
@@ -20,23 +19,21 @@ def zmap(cwd, config, task_id):
             os.mkdir(os.path.join(cwd, probe))
 
             url = util.api_url(probe, '/tasks/zmap')
-            data = StringIO()
             with open(os.path.join(os.path.join(cwd, probe), 'target.txt'), 'w') as fp:
                 if i+1 != len(args['probe']):
                     for i in range(num):
                         line = f.readline()
                         fp.writelines(line)
-                        data.writelines(line)
                 else:
                     while True:
                         line = f.readline()
                         if not line:
                             break
                         fp.writelines(line)
-                        data.writelines(line)
-            r = requests.post(url, files = {'file':data.getvalue().encode('utf-8')}, 
-                                data={'data':json.dumps({'uuid':task_id, 'probe':probe, 'config':config})})
-            data.close()
+            md5 = util.gen_md5(os.path.join(os.path.join(cwd, probe), 'target.txt'))
+            with open(os.path.join(os.path.join(cwd, probe), 'target.txt'), 'rb') as fp:
+                r = requests.post(url, files = {'file':fp}, 
+                                    data={'data':json.dumps({'uuid':task_id, 'probe':probe, 'config':config, 'md5':md5})})
             if r.status_code != 200:
                 return False, 'Task distribution failed:' + r.text
 

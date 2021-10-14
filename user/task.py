@@ -3,6 +3,7 @@ import requests
 import argparse
 import util
 import yaml
+import hashlib
 
 parser = argparse.ArgumentParser(description='submit task to scheduler')
 parser.add_argument('--config', type=str, help='config file location')
@@ -27,8 +28,11 @@ if not util.api_has_platform(server + ':' + port):
 
 task_url = util.api_url(server, '/tasks', port)
 if config['type'] == 'zmap':
+    md5 = util.gen_md5(config['args']['target'])
     with open(config['args']['target'], 'rb') as f:
-        r = requests.post(url = task_url, data={'data':json.dumps({'config':config})}, files={'file':f})
+        r = requests.post(url = task_url, 
+                        data={'data':json.dumps({'config':config, 'md5':md5})}, 
+                        files={'file':f})
 else:
     r = requests.post(url = task_url, data={'data':json.dumps({'config':config})})
 status = r.status_code

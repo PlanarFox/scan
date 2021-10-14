@@ -11,19 +11,16 @@ def zmap(cwd, uuid, config, ip, myaddr, **kw):
     command += ' --ipv6-source-ip=\"' + ip[0] + '\"'
     command += ' --ipv6-target-file=\"' + os.path.join(cwd, 'target.txt') + '\"'
     command += ' -o \"' + os.path.join(cwd, 'output.csv') + '\"'
-    result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf-8', check=False)
-
-    #with open(os.path.join(cwd, 'output.csv'), 'r') as f:
-    #    f.readline()
-    #    result_addr = f.read()
-        # May cause memory error when output file is too large
+    result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, 
+                            stderr=subprocess.PIPE, encoding='utf-8', check=False)
     
     url = util.api_url(config['scheduler']['addr'], '/submit/zmap', config['scheduler']['port'])
     for i in range(5):
         try:
+            md5 = util.gen_md5(os.path.join(cwd, 'output.csv'))
             with open(os.path.join(cwd, 'output.csv'), 'rb') as f:
                 r = requests.post(url, files = {'file':f},
-                                    data = {'data':json.dumps({'uuid':uuid, 'addr':myaddr})})
+                                    data = {'data':json.dumps({'uuid':uuid, 'addr':myaddr, 'md5':md5})})
             if r.status_code == 200:
                 break
         except:

@@ -3,6 +3,7 @@ from urllib.parse import urlparse
 import requests
 from flask import Response
 import subprocess
+import hashlib
 
 def api_local_host():
     return 'localhost'
@@ -83,7 +84,7 @@ def getv6addr():
     try:
         t1 = subprocess.run('ifconfig', shell=True, stdout=subprocess.PIPE, encoding='utf-8')
     except Exception as e:
-        return False, 'Failed to run ifconfig:'+e.args
+        return False, 'Failed to run ifconfig:'+str(e)
     result = t1.stdout.split('\n')
     result = list(map(str.strip, result))
     ip = []
@@ -93,3 +94,19 @@ def getv6addr():
     if len(ip) == 0:
         return False, 'Host don\'t have ipv6 address.'
     return True, ip
+
+def gen_md5(path):
+    with open(path, 'rb') as f:
+        md5 = hashlib.md5()
+        while True:
+            chunk = f.read(2024)
+            if not chunk:
+                break
+            md5.update(chunk)
+        return md5.hexdigest()
+
+def integrity_check(path, target_md5):
+    md5 = gen_md5(path)
+    if md5 == target_md5:
+        return True
+    return False

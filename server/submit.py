@@ -28,6 +28,8 @@ def submition_recv(task_type):
         return util.bad_request('Unknown probe.')
 
     data.save(os.path.join(os.path.join(cwd, probe), 'tmp_data'))
+    if not util.integrity_check(os.path.join(os.path.join(cwd, probe), 'tmp_data'), args['md5']):
+        return util.bad_request('File is broken.')
 
     valid, message = getattr(submit_proc, task_type)(cwd, uuid, probe)
 

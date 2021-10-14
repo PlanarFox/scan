@@ -1,6 +1,7 @@
 import socket
 from urllib.parse import urlparse
 import requests
+import hashlib
 
 def api_local_host():
     return 'localhost'
@@ -67,4 +68,14 @@ def api_has_platform(hostport, timeout=5):
                     timeout=timeout)
 
     return r.status_code == 200
+
+def gen_md5(path):
+    with open(path, 'rb') as f:
+        md5 = hashlib.md5()
+        while True:
+            chunk = f.read(2024)
+            if not chunk:
+                break
+            md5.update(chunk)
+        return md5.hexdigest()
  

@@ -38,6 +38,8 @@ def receive_task(task_type):
             os.mkdir(cwd)
 
         data.save(os.path.join(cwd, 'data'))
+        if not util.integrity_check(os.path.join(cwd, 'data'), config['md5']):
+            return util.bad_request('File is broken.')
         
         valid, message = getattr(prepare, task_type)(cwd, uuid, config.get('config', None), config.get('probe'))
 
