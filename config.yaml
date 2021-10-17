@@ -1,9 +1,10 @@
 scheduler:
-  addr: 'localhost'
+  addr: '[2001:da8:ff:212::7:1]'
   port: '80'
 type: 'zmap'
 args:
   probe:
-    - 'localhost:8888'
+    - '[2001:da8:ff:212::7:1]:8888'
+    - '[2001:da8:ff:212::7:2]:8888'
   target: 'list.txt'
   port: '443'

@@ -21,7 +21,7 @@ def zmap(cwd, uuid, probe, **kw):
                             if not target_line:
                                 has_total = True
                                 break
-                            if not has_total:
+                            if not has_total and target_line != '\n':
                                 total_num += 1
                             if target_line == result_line:
                                 count += 1
