@@ -14,6 +14,12 @@ def zmap(cwd, uuid, probe, **kw):
                 while True:
                     result_line = result.readline()
                     if not result_line:
+                        with open(os.path.join(probe_cwd, 'target.txt'), 'r') as target:
+                            while True:
+                                line = target.readline()
+                                if not line:
+                                    break
+                                total_num += 1 
                         break
                     with open(os.path.join(probe_cwd, 'target.txt'), 'r') as target:
                         while True:
