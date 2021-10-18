@@ -4,17 +4,23 @@ import time
 import util
 import sys
 
+def restart():
+    subprocess.run('/usr/local/bin/uwsgi --stop /var/lib/scan/probe/uwsgi.pid', shell=True, check=True)
+    subprocess.run('/usr/sbin/nginx -s stop', shell=True, check=True)
+    subprocess.run('/usr/local/bin/uwsgi /var/lib/scan/probe/uwsgi.ini', shell=True, check=True)
+    subprocess.run('cp -f /var/lib/scan/probe/nginx-flask.conf /etc/nginx/conf.d/probe.conf', shell=True, check=True)
+    subprocess.run('/usr/sbin/nginx', shell=True, check=True)
+
 def probe_daemon(port):
     time.sleep(20.0)
     while True:
-        r = requests.get(util.api_url('localhost', port=port))
-        if r.status_code != 200:
+        try:
+            r = requests.get(util.api_url('localhost', port=port))
+            if r.status_code != 200:
+                raise Exception('Server not running. Restarting...')
+        except:
             try:
-                subprocess.run('/usr/local/bin/uwsgi --stop /var/lib/scan/probe/uwsgi.pid', shell=True, check=True)
-                subprocess.run('/usr/sbin/nginx -s stop', shell=True, check=True)
-                subprocess.run('/usr/local/bin/uwsgi /var/lib/scan/probe/uwsgi.ini', shell=True, check=True)
-                subprocess.run('cp -f /var/lib/scan/probe/nginx-flask.conf /etc/nginx/conf.d/probe.conf', shell=True, check=True)
-                subprocess.run('/usr/sbin/nginx', shell=True, check=True)
+                restart()
             except:
                 pass
         time.sleep(10.0)
