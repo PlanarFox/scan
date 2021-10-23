@@ -81,10 +81,8 @@ def ok(message="OK", mimetype=None):
     return Response(message + '\n', status=200, mimetype=mimetype)
 
 def getv6addr():
-    try:
-        t1 = subprocess.run('ifconfig', shell=True, stdout=subprocess.PIPE, encoding='utf-8')
-    except Exception as e:
-        return False, 'Failed to run ifconfig:'+str(e)
+    # Catch the Exception outside the function to use logger
+    t1 = subprocess.run('ifconfig', shell=True, stdout=subprocess.PIPE, encoding='utf-8')
     result = t1.stdout.split('\n')
     result = list(map(str.strip, result))
     ip = []
@@ -108,5 +106,14 @@ def gen_md5(path):
 def integrity_check(path, target_md5):
     md5 = gen_md5(path)
     if md5 == target_md5:
-        return True
+        return True  
     return False
+
+def error_record(message, logger, handler, io):
+    handler.flush()
+    io.read()
+    io.seek(0)
+    logger.error(message, exc_info=True)
+    handler.flush()
+    io.seek(0)
+    return io.read()

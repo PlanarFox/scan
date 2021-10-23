@@ -1,9 +1,17 @@
 from flask import Flask
+import logging.config
+import yaml
+import os
+
+path = 'probe_logger.yaml'
+if os.path.exists(path):
+    with open(path, 'r', encoding='utf-8') as f:
+        log_config = yaml.load(f, Loader=yaml.FullLoader)
+        logging.config.dictConfig(log_config)
+else:
+    raise FileNotFoundError('Logger config file not found at working diretory.')
 
 app = Flask(__name__)
-#import os
-#if not os.path.isfile(os.path.join(os.getcwd(), 'uwsgi.socket')):
-#    os.mknod(os.path.join(os.getcwd(), 'uwsgi.socket'))
 
 from task import *
 

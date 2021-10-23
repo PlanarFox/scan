@@ -1,5 +1,15 @@
 import os
 import json
+import util
+import logging
+from io import StringIO
+
+logger = logging.getLogger('server')
+errIO = StringIO()
+stream_handler = logging.StreamHandler(errIO)
+stream_handler.setLevel(level=logging.ERROR)
+stream_handler.setFormatter(logging.Formatter(fmt="%(asctime)s - %(name)s - %(levelname)s - %(filename)s - %(funcName)s - %(lineno)d - %(message)s"))
+logger.addHandler(stream_handler)
 
 def zmap(cwd):
     total = 0
@@ -27,6 +37,6 @@ def zmap(cwd):
                             f.writelines(line)
                         
     except Exception as e:
-        return False, str(e)
+        return False, util.error_record('Failed when writing result.', logger, stream_handler, errIO)
     
     return True, None

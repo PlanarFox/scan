@@ -1,10 +1,13 @@
 scheduler:
-  addr: '[2001:da8:ff:212::7:1]'
+  addr: 'localhost'
   port: '80'
 type: 'zmap'
 args:
   probe:
-    - '[2001:da8:ff:212::7:1]:8888'
-    - '[2001:da8:ff:212::7:2]:8888'
+    - 'localhost:8888'
   target: 'list.txt'
-  port: '443'
+  args:
+    -M: 'ipv6_tcp_synscan'
+    -f: '"saddr"'
+    -p: '443'
+

@@ -94,3 +94,12 @@ def integrity_check(path, target_md5):
     if md5 == target_md5:
         return True
     return False
+
+def error_record(message, logger, handler, io):
+    handler.flush()
+    io.read()
+    io.seek(0)
+    logger.error(message, exc_info=True)
+    handler.flush()
+    io.seek(0)
+    return io.read()
