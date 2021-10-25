@@ -14,4 +14,10 @@ def zmap(args):
     if not temp[0]:
         return False, 'Probe '+ temp[1] +' aren\'t available.'
     return True, None
+
+def zgrab(args):
+    temp = check_probe(args['probe'], 'zgrab')
+    if not temp[0]:
+        return False, 'Probe '+ temp[1] +' aren\'t available.'
+    return True, None
     

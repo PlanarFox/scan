@@ -22,10 +22,6 @@ def submition_recv(task_type):
         args = json.loads(request.form['data'])
     except Exception as e:
         return util.bad_request(util.error_record('Args must be in json format.', logger, stream_handler, errIO))
-    try:
-        data = request.files['file']
-    except Exception as e:
-        return util.bad_request(util.error_record('Fail when loading data file.', logger, stream_handler, errIO))
 
     uuid = args['uuid']
     probe = args['addr']
@@ -39,10 +35,14 @@ def submition_recv(task_type):
         logger.error('Unknown probe specified.')
         return util.bad_request('Unknown probe.')
 
-    data.save(os.path.join(os.path.join(cwd, probe), 'tmp_data'))
-    if not util.integrity_check(os.path.join(os.path.join(cwd, probe), 'tmp_data'), args['md5']):
-        logger.error('File submitted from %s is broken.', probe)
-        return util.bad_request('File submitted is broken.')
+    try:
+        for key, _ in request.files.items():
+            request.files[key].save(os.path.join(os.path.join(cwd, probe), str(key)))
+            if not util.integrity_check(os.path.join(os.path.join(cwd, probe), str(key)), args['md5'][str(key)]):
+                logger.error('User uploaded data is broken. File location:%s', os.path.join(os.path.join(cwd, probe), str(key)))
+                return util.bad_request('File is broken.')
+    except:
+        return util.bad_request(util.error_record('Fail to load data from user\'s post.', logger, stream_handler, errIO))
 
     valid, message = getattr(submit_proc, task_type)(cwd, uuid, probe, error)
 

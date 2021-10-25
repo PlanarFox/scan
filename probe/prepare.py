@@ -20,11 +20,6 @@ def zmap(cwd, uuid, config, myaddr, **args):
         logger.error('Probe addr for %s not found.', uuid)
         return False, 'Can\'t get probe addr.'
     try:
-        os.rename(os.path.join(cwd, 'data'), os.path.join(cwd, 'target.txt'))
-        logger.debug('Rename for task %s done.', uuid)
-    except:
-        return False, util.error_record('Fail to rename file.', logger, stream_handler, errIO)
-    try:
         valid, ip = util.getv6addr()
         if not valid:
             logger.error(ip)
@@ -35,6 +30,21 @@ def zmap(cwd, uuid, config, myaddr, **args):
     try:
         t1 =threading.Thread(target=getattr(run, 'zmap'), 
                                 args=(cwd, uuid, config, ip, myaddr))
+        t1.start()
+    except Exception:
+        return False, util.error_record('', logger, stream_handler, errIO)
+    return True, None
+
+def zgrab(cwd, uuid, config, myaddr, **args):
+    if config is None:
+        logger.error('Config for %s not found.', uuid)
+        return False, 'Config not found.'
+    if myaddr is None:
+        logger.error('Probe addr for %s not found.', uuid)
+        return False, 'Can\'t get probe addr.'
+    try:
+        t1 =threading.Thread(target=getattr(run, 'zgrab'), 
+                                args=(cwd, uuid, config, myaddr))
         t1.start()
     except Exception:
         return False, util.error_record('', logger, stream_handler, errIO)

@@ -31,10 +31,23 @@ if config['type'] == 'zmap':
     md5 = util.gen_md5(config['args']['target'])
     with open(config['args']['target'], 'rb') as f:
         r = requests.post(url = task_url, 
-                        data={'data':json.dumps({'config':config, 'md5':md5})}, 
-                        files={'file':f})
-else:
-    r = requests.post(url = task_url, data={'data':json.dumps({'config':config})})
+                        data={'data':json.dumps({'config':config, 'md5':{'target':md5}})}, 
+                        files={'target':f})
+elif config['type'] == 'zgrab':
+    md5 = {}
+    file = {}
+    md5['target'] = util.gen_md5(config['args']['target'])
+    file['target'] = open(config['args']['target'], 'rb')
+    if config['args'].get('multiple', None):
+        md5['mul'] = util.gen_md5(config['args']['multiple'])
+        file['mul'] = open(config['args']['multiple'], 'rb')
+    r = requests.post(url = task_url,
+                    data = {'data':json.dumps({'config':config, 'md5':md5})},
+                    files = file)
+    for _, value in file.items():
+        value.close()
+        
+    
 status = r.status_code
 print(r.text)
 task_url = r.text[1:-2]

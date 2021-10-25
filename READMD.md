@@ -7,3 +7,10 @@ or zmap won't return right result.
 
 PLEASE MANUALLY CHANGE YOUR SERVICE PORT IN FILE nginx-flask.conf AND start.sh
 If you want to manully restart the service, port number in restart.sh also need to be changed.
+
+# zmap
+You can assign zmap arguments in the field "[args][args]" of config.yaml.
+Use the option itself as the key and specify the value in string form.
+The field "--ipv6-source-ip", "--ipv6-target-file" and '-o' will be ignored.
+If you want to use ipv4 instead of ipv6
+(Need to be completed)

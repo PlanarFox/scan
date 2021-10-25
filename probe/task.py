@@ -27,11 +27,7 @@ def receive_task(task_type):
             config = json.loads(request.form['data'])
         except:
             return util.bad_request(util.error_record('Config must be in json format.', logger, stream_handler, errIO))
-        try:
-            data = request.files['file']
-        except:
-            return util.bad_request(util.error_record('Fail to load data from user\'s post.', logger, stream_handler, errIO))
-
+        
         uuid = config.get('uuid', None)
         if uuid is None:
             logger.error('Uuid not found.')
@@ -54,12 +50,16 @@ def receive_task(task_type):
             logger.error('Failed when create/find working directory.', exc_info=True)
             return util.bad_request('Failed when create/find working directory.')
 
+        try:
+            for key, _ in request.files.items():
+                request.files[key].save(os.path.join(cwd, str(key)))
+                if not util.integrity_check(os.path.join(cwd, str(key)), config['md5'][str(key)]):
+                    logger.error('User uploaded data is broken. File location:%s', os.path.join(cwd, str(key)))
+                    return util.bad_request('File is broken.')
+        except:
+            return util.bad_request(util.error_record('Fail to load data from user\'s post.', logger, stream_handler, errIO))
 
-        data.save(os.path.join(cwd, 'data'))
-        if not util.integrity_check(os.path.join(cwd, 'data'), config['md5']):
-            logger.error('User uploaded data is broken. File location:%s', os.path.join(cwd, 'data'))
-            return util.bad_request('File is broken.')
-        
+
         logger.debug('Preparing for task %s', uuid)
         valid, message = getattr(prepare, task_type)(cwd, uuid, config.get('config', None), config.get('probe'))
 
@@ -70,7 +70,8 @@ def receive_task(task_type):
         try:
             getattr(prepare, task_type)
         except AttributeError:
-            return util.bad_request('Such type of tasks are not supported.')
+            logger.error('Such type \"%s\" of tasks are not supported.' % (task_type))
+            return util.bad_request('Such type \"%s\" of tasks are not supported.' % (task_type))
         return util.ok()
     
 

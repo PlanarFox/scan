@@ -4,3 +4,4 @@
 *.socket
 *.log
 *.pid
+*/data/*

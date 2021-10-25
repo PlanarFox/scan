@@ -23,7 +23,7 @@ def zmap(cwd):
                     total += statistics['total']
                     count += statistics['hit']
         
-        with open(os.path.join(cwd, 'result.txt'), 'w') as f:
+        with open(os.path.join(cwd, 'result'), 'w') as f:
             f.writelines(['total:'+str(total), '\nhit:'+str(count), '\n-------------------\n'])
             for item in os.listdir(cwd):
                 path = os.path.join(cwd, item)
@@ -37,6 +37,23 @@ def zmap(cwd):
                             f.writelines(line)
                         
     except Exception as e:
-        return False, util.error_record('Failed when writing result.', logger, stream_handler, errIO)
+        return False, util.error_record('Failed when generating result.', logger, stream_handler, errIO)
     
+    return True, None
+
+def zgrab(cwd):
+    try:
+        with open(os.path.join(cwd, 'result'), 'w') as f:
+            for item in os.listdir(cwd):
+                path = os.path.join(cwd, item)
+                if os.path.isdir(path):
+                    with open(os.path.join(path, 'result.json'), 'r') as fp:
+                        while True:
+                            chunk = fp.read(2048)
+                            if not chunk:
+                                break
+                            f.write(chunk)
+                    f.writelines('\n')
+    except:
+        return False, util.error_record('Failed when generating result.', logger, stream_handler, errIO)
     return True, None

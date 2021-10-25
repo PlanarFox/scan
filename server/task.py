@@ -33,10 +33,6 @@ def create_task():
     except Exception as e:
         return util.bad_request(util.error_record('Fail to load config from user\'s post.', logger, stream_handler, errIO))
     try:
-        data = request.files['file']
-    except Exception as e:
-        return util.bad_request(util.error_record('Fail to load data from user\'s post.', logger, stream_handler, errIO))
-    try:
         valid, message = getattr(args_is_valid, config['type'])(config['args'])
     except AttributeError:
         logger.error('Task type defined by user is not supported.')
@@ -75,10 +71,14 @@ def create_task():
     f.write(json.dumps(config))
     f.close()
 
-    data.save(os.path.join(cwd, 'data'))
-    if not util.integrity_check(os.path.join(cwd, 'data'), md5):
-        logger.error('User uploaded data is broken. File location:%s', os.path.join(cwd, 'data'))
-        return util.bad_request('File is broken.')
+    try:
+        for key, _ in request.files.items():
+            request.files[key].save(os.path.join(cwd, str(key)))
+            if not util.integrity_check(os.path.join(cwd, str(key)), md5[str(key)]):
+                logger.error('User uploaded data is broken. File location:%s', os.path.join(cwd, str(key)))
+                return util.bad_request('File is broken.')
+    except:
+        return util.bad_request(util.error_record('Fail to load data from user\'s post.', logger, stream_handler, errIO))
 
     valid, message = getattr(task_creation, config['type'])(cwd, config, task_id)
 
@@ -119,6 +119,6 @@ def return_result(task_type, task_id):
     if not valid:
         return util.bad_request(message=message)
     logger.info('Returning task data file.')
-    return send_file(os.path.join(cwd, 'result.txt'), mimetype='text/plain', as_attachment=True)
+    return send_file(os.path.join(cwd, 'result'), mimetype='text/plain', as_attachment=True)
     
 

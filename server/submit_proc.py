@@ -17,12 +17,13 @@ def zmap(cwd, uuid, probe, error, **kw):
     probe_cwd = os.path.join(cwd, probe)
     try:
         if error:
-            os.rename(os.path.join(probe_cwd, 'tmp_data'), os.path.join(probe_cwd, 'error'))
+            os.rename(os.path.join(probe_cwd, 'result.txt'), os.path.join(probe_cwd, 'error'))
+            logger.debug('Error file renamed.')
         if not os.path.isfile(os.path.join(probe_cwd, 'done')):
             count = 0
             total_num = 0
             has_total = False
-            with open(os.path.join(probe_cwd, 'tmp_data'), 'r') as result:
+            with open(os.path.join(probe_cwd, 'result.txt'), 'r') as result:
                 result.readline()
                 while True:
                     result_line = result.readline()
@@ -48,10 +49,28 @@ def zmap(cwd, uuid, probe, error, **kw):
                                 total_num += 1
                             if target_line == result_line:
                                 count += 1
-            os.rename(os.path.join(probe_cwd, 'tmp_data'), os.path.join(probe_cwd, 'result.txt'))
             with open(os.path.join(probe_cwd, 'done'), 'w') as f:
                 f.write(json.dumps({'total':total_num, 'hit':count}))
+            logger.info('Result of task %s, probe %s has analysed', uuid, probe)
+        else:
+            logger.info('Result of task %s, probe %s has already been uploaded.', uuid, probe)
+            
     except Exception as e:
         return False, util.error_record('Failed when analysing result.', logger, stream_handler, errIO) 
     return True, None
-                
+
+def zgrab(cwd, uuid, probe, error, **kw):
+    probe_cwd = os.path.join(cwd, probe)
+    try:
+        if error:
+            os.rename(os.path.join(probe_cwd, 'result.json'), os.path.join(probe_cwd, 'error'))
+            logger.debug('Error file renamed.')
+        if not os.path.isfile(os.path.join(probe_cwd, 'done')):
+            with open(os.path.join(probe_cwd, 'done'), 'w') as f:
+                f.writelines('done.')
+            logger.info('Result of task %s, probe %s has analysed', uuid, probe)
+        else:
+            logger.info('Result of task %s, probe %s has already been uploaded.', uuid, probe)
+    except:
+        return False, util.error_record('Failed when analysing result.', logger, stream_handler, errIO) 
+    return True, None

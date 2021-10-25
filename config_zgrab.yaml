@@ -1,13 +1,10 @@
 scheduler:
   addr: 'localhost'
   port: '80'
-type: 'zmap'
+type: 'zgrab'
 args:
   probe:
     - 'localhost:8888'
   target: 'list.txt'
-  args:
-    -M: 'ipv6_tcp_synscan'
-    -f: '"saddr"'
-    -p: '443'
-
+  type: 'multiple'
+  multiple: 'mul.ini'
