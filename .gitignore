@@ -1,7 +1,8 @@
 .vscode/*
-*zmap*
 *__pycache__*
 *.socket
 *.log
 *.pid
 */data/*
+zmap
+zgrab2

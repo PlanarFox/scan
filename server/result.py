@@ -53,7 +53,6 @@ def zgrab(cwd):
                             if not chunk:
                                 break
                             f.write(chunk)
-                    f.writelines('\n')
     except:
         return False, util.error_record('Failed when generating result.', logger, stream_handler, errIO)
     return True, None
