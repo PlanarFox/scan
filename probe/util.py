@@ -80,18 +80,76 @@ def bad_request(message='Bad Request'):
 def ok(message="OK", mimetype=None):
     return Response(message + '\n', status=200, mimetype=mimetype)
 
-def getv6addr():
+def getv6addr(logger):
     # Catch the Exception outside the function to use logger
     t1 = subprocess.run('ifconfig', shell=True, stdout=subprocess.PIPE, encoding='utf-8')
+    logger.info('Running ifconfig.')
     result = t1.stdout.split('\n')
     result = list(map(str.strip, result))
-    ip = []
+    interface = None
+    ip = None
     for item in result:
+        if 'mtu' in item:
+            interface = item.split()[0][:-1]
         if item[:5] == 'inet6' and ('global' in item or 'Global' in item):
-            ip.append(item.split()[1])
-    if len(ip) == 0:
-        return False, 'Host don\'t have ipv6 address.'
-    return True, ip
+            ip = item.split()[1]
+            break
+    if ip is None:
+        return False, 'Host don\'t have ipv6 address. The ifconfig result is:' + result
+
+    gateway_ip = None
+    command = 'ip -6 route show | grep default | grep ' + str(interface)
+    t2 = subprocess.run(command, shell=True, stdout=subprocess.PIPE, encoding='utf-8')
+    logger.info('Running command:%s', command)
+    gateway_ip = t2.stdout.split('\n')[0].split(' ')[2]
+
+    gateway_mac = None
+    command = 'ip -6 neigh | grep router | grep ' + interface
+    t3 = subprocess.run(command, shell=True, stdout=subprocess.PIPE, encoding='utf-8')
+    logger.info('Getting IPv6 gateway. Command:\n%s', command)
+    result = t3.stdout.split('\n')
+    result = list(map(str.strip, result))
+    if len(result) > 1:
+        logger.warning('%s\n%s',\
+            'The interface has more than one gateway',\
+            'Please check the command from last logger info or manually assign gateway MAC.')
+    for item in result:
+        temp = item.split(' ')
+        if temp[0] == gateway_ip:
+            gateway_mac = temp[4]
+    return True, [ip, interface, gateway_mac]
+
+def getv4info(ip, logger):
+    t1 = subprocess.run('ifconfig', shell=True, stdout=subprocess.PIPE, encoding='utf-8')
+    logger.info('Running ifconfig')
+    result = t1.stdout.split('\n')
+    result = list(map(str.strip, result))
+    interface = None
+    for item in result:
+        if 'mtu' in item:
+            interface = item.split()[0][:-1]
+        if item[:4] == 'inet':
+            if ip == item.split()[1]:
+                break
+
+    gateway_ip = None
+    command = 'ip route show | grep default | grep ' + str(interface)
+    t2 = subprocess.run(command, shell=True, stdout=subprocess.PIPE, encoding='utf-8')
+    logger.info('Running command:%s', command)
+    gateway_ip = t2.stdout.split('\n')[0].split(' ')[2]
+
+    gateway_mac = None
+    command = 'ip neigh | grep ' + interface
+    t3 = subprocess.run(command, shell=True, stdout=subprocess.PIPE, encoding='utf-8')
+    logger.info('Getting IPv4 gateway. Command:\n%s', command)
+    result = t3.stdout.split('\n')
+    result = list(map(str.strip, result))
+    for item in result:
+        temp = item.split(' ')
+        if temp[0] == gateway_ip:
+            gateway_mac = temp[4]
+    return True, [ip, interface, gateway_mac]
+    
 
 def gen_md5(path):
     with open(path, 'rb') as f:

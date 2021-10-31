@@ -1,4 +1,3 @@
-import os
 import run
 import threading
 import util
@@ -20,16 +19,21 @@ def zmap(cwd, uuid, config, myaddr, **args):
         logger.error('Probe addr for %s not found.', uuid)
         return False, 'Can\'t get probe addr.'
     try:
-        valid, ip = util.getv6addr()
-        if not valid:
-            logger.error(ip)
-            return False, ip
-        logger.debug('Got ipv6 address.')
+        if config.get('ipv6', None) == 'disable':
+            valid, net_info = util.getv4info(myaddr, logger)
+        else:
+            valid, net_info = util.getv6addr(logger)
+            if not valid:
+                logger.error(net_info)
+                return False, net_info
+            logger.debug('Got interface info.')
+        if net_info[0] != myaddr:
+            logger.warning('Probe may running behind router using NAT or port forwarding.')
     except:
-        return False, util.error_record('Fail when getting ipv6 address.', logger, stream_handler, errIO)
+        return False, util.error_record('Fail when getting interface info.', logger, stream_handler, errIO)
     try:
         t1 =threading.Thread(target=getattr(run, 'zmap'), 
-                                args=(cwd, uuid, config, ip, myaddr))
+                                args=(cwd, uuid, config, net_info, myaddr))
         t1.start()
     except Exception:
         return False, util.error_record('', logger, stream_handler, errIO)

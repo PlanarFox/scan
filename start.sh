@@ -9,6 +9,7 @@ then
     then
         mkdir /var/lib/scan/probe/log
     fi
+    chmod +x /var/lib/scan/server/sort.sh
     /usr/local/bin/uwsgi /var/lib/scan/probe/uwsgi.ini
     /usr/local/bin/uwsgi /var/lib/scan/server/uwsgi.ini
     cp -f /var/lib/scan/probe/nginx-flask.conf /etc/nginx/conf.d/probe.conf

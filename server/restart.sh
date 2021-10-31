@@ -7,6 +7,7 @@ then
     then
         mkdir /var/lib/scan/server/log
     fi
+    chmod +x /var/lib/scan/server/sort.sh
     /usr/local/bin/uwsgi /var/lib/scan/server/uwsgi.ini
     cp -f /var/lib/scan/server/nginx-flask.conf /etc/nginx/conf.d/server.conf
     /usr/sbin/nginx -s stop

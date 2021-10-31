@@ -28,8 +28,7 @@ def zmap(cwd):
             for item in os.listdir(cwd):
                 path = os.path.join(cwd, item)
                 if os.path.isdir(path):
-                    with open(os.path.join(path, 'result.txt'), 'r') as fp:
-                        fp.readline()
+                    with open(os.path.join(path, 'result_sorted.txt'), 'r') as fp:
                         while True:
                             line = fp.readline()
                             if not line:

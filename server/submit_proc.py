@@ -4,6 +4,7 @@ import json
 import util
 import logging
 from io import StringIO
+import subprocess
 
 logger = logging.getLogger('server')
 errIO = StringIO()
@@ -23,8 +24,16 @@ def zmap(cwd, uuid, probe, error, **kw):
             count = 0
             total_num = 0
             has_total = False
-            with open(os.path.join(probe_cwd, 'result.txt'), 'r') as result:
-                result.readline()
+            command = os.path.join(os.getcwd(), 'sort.sh') + ' ' + \
+                        'result.txt' + ' ' + \
+                        'result_sorted.txt' + ' ' + \
+                        probe_cwd
+            cmdResult = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+            logger.info('Running command:%s\n%s', command, cmdResult.stdout)
+            if cmdResult.returncode != 0:
+                return False, util.error_record('Failed when sorting result:\n%s' % (cmdResult.stderr), logger, stream_handler, errIO)
+            with open(os.path.join(probe_cwd, 'result_sorted.txt'), 'r') as result:
+                #result.readline()
                 while True:
                     result_line = result.readline()
                     if result_line == '\n':

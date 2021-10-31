@@ -13,6 +13,7 @@ then
     fi
     /usr/local/bin/uwsgi --stop /var/lib/scan/probe/uwsgi.pid
     /usr/local/bin/uwsgi --stop /var/lib/scan/server/uwsgi.pid
+    chmod +x /var/lib/scan/server/sort.sh
     /usr/local/bin/uwsgi /var/lib/scan/probe/uwsgi.ini
     /usr/local/bin/uwsgi /var/lib/scan/server/uwsgi.ini
     /usr/sbin/nginx -s stop
