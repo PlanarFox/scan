@@ -33,21 +33,20 @@ def zmap(cwd, uuid, probe, error, **kw):
             if cmdResult.returncode != 0:
                 return False, util.error_record('Failed when sorting result:\n%s' % (cmdResult.stderr), logger, stream_handler, errIO)
             with open(os.path.join(probe_cwd, 'result_sorted.txt'), 'r') as result:
-                #result.readline()
                 while True:
                     result_line = result.readline()
-                    if result_line == '\n':
-                        continue
+                    if result_line != '\n':
+                        count += 1
                     if not result_line:
-                        if total_num == 0:
-                            with open(os.path.join(probe_cwd, 'target.txt'), 'r') as target:
-                                while True:
-                                    line = target.readline()
-                                    if not line:
-                                        break
-                                    if line != '\n':
-                                        total_num += 1 
                         break
+            with open(os.path.join(probe_cwd, 'target.txt'), 'r') as target:
+                while True:
+                    line = target.readline()
+                    if not line:
+                        break
+                    if line != '\n':
+                        total_num += 1 
+            '''
                     with open(os.path.join(probe_cwd, 'target.txt'), 'r') as target:
                         while True:
                             target_line = target.readline()
@@ -58,6 +57,7 @@ def zmap(cwd, uuid, probe, error, **kw):
                                 total_num += 1
                             if target_line == result_line:
                                 count += 1
+            '''
             with open(os.path.join(probe_cwd, 'done'), 'w') as f:
                 f.write(json.dumps({'total':total_num, 'hit':count}))
             logger.info('Result of task %s, probe %s has analysed', uuid, probe)
