@@ -39,7 +39,6 @@ def zmap(cwd, config, task_id):
                     while True:
                         line = f.readline()
                         if not line:
-                            fp.writelines('\n')
                             break
                         fp.writelines(line)
             md5 = util.gen_md5(os.path.join(os.path.join(cwd, probe), 'target.txt'))
@@ -90,7 +89,6 @@ def zgrab(cwd, config, task_id):
                     while True:
                         line = f.readline()
                         if not line:
-                            fp.writelines('\n')
                             break
                         fp.writelines(line)
             md5 = {'target.txt':util.gen_md5(os.path.join(os.path.join(cwd, probe), 'target.txt'))}

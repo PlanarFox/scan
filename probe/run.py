@@ -120,15 +120,18 @@ def zgrab(cwd, uuid, config, myaddr, **kw):
         for i in range(5):
             try:
                 md5 = util.gen_md5(os.path.join(cwd, 'output.json'))
+                logger.debug('Trying to POST result of task %s', uuid)
                 with open(os.path.join(cwd, 'output.json'), 'rb') as f:
                     r = requests.post(url, files = {'result.json':f},
                                         data = {'data':json.dumps({'uuid':uuid, 'addr':myaddr, 
                                                                 'md5':{'result.json':md5}, 'error':error_message is not None})})
                 if r.status_code == 200:
+                    logger.info('Task POST success, uuid:%s', uuid)
                     break
             except:
                 time.sleep(1.0)
                 continue
+        logger.error('Task POST failed, uuid:%s', uuid)
     except:
         logger.error('Error when running zgrab task.\n', exc_info=True)
                 

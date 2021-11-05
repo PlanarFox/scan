@@ -27,6 +27,8 @@ def submition_recv(task_type):
     probe = args['addr']
     error = args['error']
 
+    logger.debug('POST from probe:%s', uuid)
+
     cwd = os.path.join(os.path.join(os.path.join(os.getcwd(), 'data'), task_type), uuid)
     if not os.path.isdir(cwd):
         logger.error('Unknown task submitted.')
@@ -41,6 +43,8 @@ def submition_recv(task_type):
             if not util.integrity_check(os.path.join(os.path.join(cwd, probe), str(key)), args['md5'][str(key)]):
                 logger.error('User uploaded data is broken. File location:%s', os.path.join(os.path.join(cwd, probe), str(key)))
                 return util.bad_request('File is broken.')
+            else:
+                logger.info('Result from task received, uuid:%s', uuid)
     except:
         return util.bad_request(util.error_record('Fail to load data from user\'s post.', logger, stream_handler, errIO))
 
