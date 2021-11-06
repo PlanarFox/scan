@@ -1,3 +1,4 @@
+import hashlib
 import os
 import sys
 sys.path.append(os.path.join(os.getcwd(), '..'))
@@ -19,7 +20,11 @@ logger.addHandler(stream_handler)
 @app.route('/myplatform/submit/<task_type>', methods=['POST'])
 def submition_recv(task_type):
     try:
-        args = json.loads(request.form['data'])
+        args_size = int(request.stream.readline().strip())
+        args = request.stream.read(args_size)
+        if request.args.get('md5', None) != hashlib.md5(args).hexdigest():
+            return util.bad_request(util.error_record('User posted config is broken.', logger, stream_handler, errIO))
+        args = json.loads(args)
     except Exception as e:
         return util.bad_request(util.error_record('Args must be in json format.', logger, stream_handler, errIO))
 
@@ -38,13 +43,15 @@ def submition_recv(task_type):
         return util.bad_request('Unknown probe.')
 
     try:
-        for key, _ in request.files.items():
-            request.files[key].save(os.path.join(os.path.join(cwd, probe), str(key)))
-            if not util.integrity_check(os.path.join(os.path.join(cwd, probe), str(key)), args['md5'][str(key)]):
+        util.file_saver(request, os.path.join(cwd, probe))
+        for key, value in args['md5'].items():
+            if not util.integrity_check(os.path.join(os.path.join(cwd, probe), str(key)), value):
                 logger.error('User uploaded data is broken. File location:%s', os.path.join(os.path.join(cwd, probe), str(key)))
                 return util.bad_request('File is broken.')
             else:
                 logger.info('Result from task received, uuid:%s', uuid)
+        #for key, _ in request.files.items():
+        #    request.files[key].save(os.path.join(os.path.join(cwd, probe), str(key)))
     except:
         return util.bad_request(util.error_record('Fail to load data from user\'s post.', logger, stream_handler, errIO))
 

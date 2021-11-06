@@ -1,3 +1,4 @@
+import hashlib
 import os
 import sys
 sys.path.append(os.path.join(os.getcwd(), '..'))
@@ -5,7 +6,7 @@ from server import app
 import util
 import args_is_valid
 import task_creation 
-from flask import request, send_file
+from flask import request, Response
 import uuid
 import json
 import result
@@ -27,7 +28,11 @@ def hello():
 @app.route('/myplatform/tasks', methods=['POST'])
 def create_task():
     try:
-        config = json.loads(request.form['data'])
+        config_size = int(request.stream.readline().strip())
+        config = request.stream.read(config_size)
+        if request.args.get('md5', None) != hashlib.md5(config).hexdigest():
+            return util.bad_request(util.error_record('User posted config is broken.', logger, stream_handler, errIO))
+        config = json.loads(config)
         md5 = config['md5']
         config = config['config']
     except Exception as e:
@@ -72,11 +77,15 @@ def create_task():
     f.close()
 
     try:
-        for key, _ in request.files.items():
-            request.files[key].save(os.path.join(cwd, str(key)))
-            if not util.integrity_check(os.path.join(cwd, str(key)), md5[str(key)]):
-                logger.error('User uploaded data is broken. File location:%s', os.path.join(cwd, str(key)))
+        util.file_saver(request, cwd)
+        for key, value in md5.items():
+            if not util.integrity_check(os.path.join(cwd, str(key)), value):
+                logger.error('User uploaded data is broken. File location:%s, md5 sent was %s', os.path.join(cwd, str(key)), value)
                 return util.bad_request('File is broken.')
+
+        #for key, _ in request.files.items():
+        #    request.files[key].save(os.path.join(cwd, str(key)))
+        #    if not util.integrity_check(os.path.join(cwd, str(key)), md5[str(key)]):
     except:
         return util.bad_request(util.error_record('Fail to load data from user\'s post.', logger, stream_handler, errIO))
 
@@ -119,6 +128,20 @@ def return_result(task_type, task_id):
     if not valid:
         return util.bad_request(message=message)
     logger.info('Returning task data file.')
-    return send_file(os.path.join(cwd, 'result'), mimetype='text/plain', as_attachment=True)
+
+    def generate():
+        with open(os.path.join(cwd, 'result'), 'rb') as f:
+            while True:
+                chunk = f.read(1048576)
+                if not chunk:
+                    break
+                yield chunk
+    
+    response = Response(generate(), mimetype='text/plain')
+    response.headers['Content-Disposition'] = 'attachment; filename=result.txt'
+    response.headers['content-length'] = os.path.getsize(os.path.join(cwd, 'result'))
+    return response
+
+    #return send_file(os.path.join(cwd, 'result'), mimetype='text/plain', as_attachment=True)
     
 

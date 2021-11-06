@@ -35,10 +35,10 @@ def zmap(cwd, uuid, probe, error, **kw):
             with open(os.path.join(probe_cwd, 'result_sorted.txt'), 'r') as result:
                 while True:
                     result_line = result.readline()
-                    if result_line != '\n':
-                        count += 1
                     if not result_line:
                         break
+                    if result_line != '\n':
+                        count += 1
             with open(os.path.join(probe_cwd, 'target.txt'), 'r') as target:
                 while True:
                     line = target.readline()
@@ -46,18 +46,6 @@ def zmap(cwd, uuid, probe, error, **kw):
                         break
                     if line != '\n':
                         total_num += 1 
-            '''
-                    with open(os.path.join(probe_cwd, 'target.txt'), 'r') as target:
-                        while True:
-                            target_line = target.readline()
-                            if not target_line:
-                                has_total = True
-                                break
-                            if not has_total and target_line != '\n':
-                                total_num += 1
-                            if target_line == result_line:
-                                count += 1
-            '''
             with open(os.path.join(probe_cwd, 'done'), 'w') as f:
                 f.write(json.dumps({'total':total_num, 'hit':count}))
             logger.info('Result of task %s, probe %s has analysed', uuid, probe)

@@ -8,6 +8,7 @@ import util
 import prepare
 import logging
 from io import StringIO
+import hashlib
 
 logger = logging.getLogger('probe')
 errIO = StringIO()
@@ -24,7 +25,11 @@ def hello():
 def receive_task(task_type):
     if request.method == 'POST':
         try:
-            config = json.loads(request.form['data'])
+            config_size = int(request.stream.readline().strip())
+            config = request.stream.read(config_size)
+            if request.args.get('md5', None) != hashlib.md5(config).hexdigest():
+                return util.bad_request(util.error_record('User posted config is broken.', logger, stream_handler, errIO))
+            config = json.loads(config)
         except:
             return util.bad_request(util.error_record('Config must be in json format.', logger, stream_handler, errIO))
         
@@ -51,11 +56,15 @@ def receive_task(task_type):
             return util.bad_request('Failed when create/find working directory.')
 
         try:
-            for key, _ in request.files.items():
-                request.files[key].save(os.path.join(cwd, str(key)))
-                if not util.integrity_check(os.path.join(cwd, str(key)), config['md5'][str(key)]):
-                    logger.error('User uploaded data is broken. File location:%s', os.path.join(cwd, str(key)))
+            util.file_saver(request, cwd)
+            for key, value in config['md5'].items():
+                if not util.integrity_check(os.path.join(cwd, str(key)), value):
+                    logger.error('User uploaded data is broken. File location:%s, md5 sent was %s', os.path.join(cwd, str(key)), value)
                     return util.bad_request('File is broken.')
+
+            #for key, _ in request.files.items():
+            #    request.files[key].save(os.path.join(cwd, str(key)))
+            #    if not util.integrity_check(os.path.join(cwd, str(key)), config['md5'][str(key)]):
         except:
             return util.bad_request(util.error_record('Fail to load data from user\'s post.', logger, stream_handler, errIO))
 

@@ -1,4 +1,5 @@
 import json
+import os
 import requests
 import argparse
 import util
@@ -26,26 +27,29 @@ port = config['scheduler']['port']
 if not util.api_has_platform(server + ':' + port):
     raise ValueError('Platform Server Error.')
 
+print('Uploading files. This may take a while...')
 task_url = util.api_url(server, '/tasks', port)
 if config['type'] == 'zmap':
     md5 = util.gen_md5(config['args']['target'])
-    with open(config['args']['target'], 'rb') as f:
-        r = requests.post(url = task_url, 
-                        data={'data':json.dumps({'config':config, 'md5':{'target':md5}})}, 
-                        files={'target':f})
+    file_dict = {config['args']['target']:'target'}
+    integrated, conf_md5 = util.file_integrater(file_dict, json.dumps({'config':config, 'md5':{'target':md5}}))
+    with open(integrated, 'rb') as f:
+        r = requests.post(url = task_url, data=f, params={'md5':conf_md5},stream=True)
+    os.remove(integrated)
 elif config['type'] == 'zgrab':
     md5 = {}
-    file = {}
+    file_dict = {}
     md5['target'] = util.gen_md5(config['args']['target'])
-    file['target'] = open(config['args']['target'], 'rb')
+    file_dict[config['args']['target']] = 'target'
+    #file['target'] = open(config['args']['target'], 'rb')
     if config['args'].get('multiple', None):
         md5['mul'] = util.gen_md5(config['args']['multiple'])
-        file['mul'] = open(config['args']['multiple'], 'rb')
-    r = requests.post(url = task_url,
-                    data = {'data':json.dumps({'config':config, 'md5':md5})},
-                    files = file)
-    for _, value in file.items():
-        value.close()
+        #file['mul'] = open(config['args']['multiple'], 'rb')
+        file_dict[config['args']['multiple']] = 'mul'
+    integrated, conf_md5 = util.file_integrater(file_dict, json.dumps({'config':config, 'md5':md5}))
+    with open(integrated, 'rb') as f:
+        r = requests.post(url = task_url, data = f, params={'md5':conf_md5}, stream=True)
+    os.remove(integrated)
         
     
 status = r.status_code

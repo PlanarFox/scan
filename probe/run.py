@@ -83,15 +83,19 @@ def zmap(cwd, uuid, config, net_info, myaddr, **kw):
         url = util.api_url(config['scheduler']['addr'], '/submit/zmap', config['scheduler']['port'])
         for i in range(5):
             try:
+                file_dict = {os.path.join(cwd, 'output.csv'):'result.txt'}
                 md5 = util.gen_md5(os.path.join(cwd, 'output.csv'))
-                with open(os.path.join(cwd, 'output.csv'), 'rb') as f:
-                    r = requests.post(url, files = {'result.txt':f},
-                                        data = {'data':json.dumps({'uuid':uuid, 'addr':myaddr, 
-                                                                'md5':{'result.txt':md5}, 'error':error_message is not None})})
+                integrated, conf_md5 = util.file_integrater(file_dict, \
+                                    json.dumps({'uuid':uuid, 'addr':myaddr, \
+                                                'md5':{'result.txt':md5}, 'error':error_message is not None}))
+                with open(integrated, 'rb') as f:
+                    r = requests.post(url, data = f, params={'md5':conf_md5}, stream=True)
                 if r.status_code == 200:
+                    os.remove(integrated)
                     break
             except:
                 time.sleep(1.0)
+                logger.error('Task POST failed %d time(s)\n' % (i), exc_info=True)
                 continue
     except:
         logger.error('Error when running zmap task.\n', exc_info=True)
@@ -119,17 +123,21 @@ def zgrab(cwd, uuid, config, myaddr, **kw):
         url = util.api_url(config['scheduler']['addr'], '/submit/zgrab', config['scheduler']['port'])
         for i in range(5):
             try:
+                file_dict = {os.path.join(cwd, 'output.json'):'result.json'}
                 md5 = util.gen_md5(os.path.join(cwd, 'output.json'))
+                integrated, conf_md5 = util.file_integrater(file_dict, 
+                                    json.dumps({'uuid':uuid, 'addr':myaddr, \
+                                                'md5':{'result.json':md5}, 'error':error_message is not None}))
                 logger.debug('Trying to POST result of task %s', uuid)
-                with open(os.path.join(cwd, 'output.json'), 'rb') as f:
-                    r = requests.post(url, files = {'result.json':f},
-                                        data = {'data':json.dumps({'uuid':uuid, 'addr':myaddr, 
-                                                                'md5':{'result.json':md5}, 'error':error_message is not None})})
+                with open(integrated, 'rb') as f:
+                    r = requests.post(url, data = f, params={'md5':conf_md5}, stream=True)
                 if r.status_code == 200:
                     logger.info('Task POST success, uuid:%s', uuid)
+                    os.remove(integrated)
                     break
             except:
                 time.sleep(1.0)
+                logger.error('Task POST failed %d time(s)\n' % (i), exc_info=True)
                 continue
         logger.error('Task POST failed, uuid:%s', uuid)
     except:
