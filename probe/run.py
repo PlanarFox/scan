@@ -291,7 +291,7 @@ def zMnG(cwd, uuid, config, net_info, myaddr, **kw):
             args = dict()
             args['args'] = dict()
         args['args']['-O'] = 'csv'
-        args['args']['-o'] = 'zmap_result.csv'
+        args['args']['-o'] = os.path.join(cwd, 'zmap_result.csv')
 
         command = zmap_command_parser(cwd, args, net_info, myaddr)
         error_message = run_command(command, os.path.join(cwd, 'zmap_result.csv'))
@@ -301,7 +301,7 @@ def zMnG(cwd, uuid, config, net_info, myaddr, **kw):
             json_conf = json.dumps({'uuid':uuid, 'addr':myaddr, \
                                 'md5':{'result.json':md5}, 'error':error_message is not None})
         else:
-            command = os.path.join(cwd, 'sort.sh') + ' ' + \
+            command = os.path.join(os.getcwd(), 'sort.sh') + ' ' + \
                         'zmap_result.csv' + ' ' + \
                         'zmap_sorted.csv' + ' ' + \
                         cwd
@@ -311,7 +311,7 @@ def zMnG(cwd, uuid, config, net_info, myaddr, **kw):
                 zgrab_args = config['args']['zgrab'].get('args', None)
                 if not isinstance(zgrab_args, dict):
                     zgrab_args = dict()
-                zgrab_args['-f'] = 'zmap_sorted.csv'
+                zgrab_args['-f'] = os.path.join(cwd, 'zmap_sorted.csv')
                 zgrab_args['-o'] = '\"' + os.path.join(cwd, 'output.json') + '\"'
                 command = zgrab_command_parser(zgrab_type, zgrab_args, cwd)
 
