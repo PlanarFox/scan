@@ -305,20 +305,17 @@ def zMnG(cwd, uuid, config, net_info, myaddr, **kw):
                         'zmap_result.csv' + ' ' + \
                         'zmap_sorted.csv' + ' ' + \
                         cwd
-            cmdResult = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
-            logger.info('Running command:%s\n%s', command, cmdResult.stdout)
-            if cmdResult.returncode != 0:
-                raise util.error_record('Failed when sorting result:\n%s' % (cmdResult.stderr), logger, stream_handler, errIO)
-
-
-            zgrab_args = config['args']['zgrab'].get('args', None)
-            if not isinstance(zgrab_args, dict):
-                zgrab_args = dict()
-            zgrab_args['-f'] = 'zmap_sorted.csv'
-            zgrab_args['-o'] = '\"' + os.path.join(cwd, 'output.json') + '\"'
-            command = zgrab_command_parser(zgrab_type, zgrab_args, cwd)
-
             error_message = run_command(command, os.path.join(cwd, 'output.json'))
+
+            if error_message is None:
+                zgrab_args = config['args']['zgrab'].get('args', None)
+                if not isinstance(zgrab_args, dict):
+                    zgrab_args = dict()
+                zgrab_args['-f'] = 'zmap_sorted.csv'
+                zgrab_args['-o'] = '\"' + os.path.join(cwd, 'output.json') + '\"'
+                command = zgrab_command_parser(zgrab_type, zgrab_args, cwd)
+
+                error_message = run_command(command, os.path.join(cwd, 'output.json'))
             file_dict = {os.path.join(cwd, 'output.json'):'result.json'}
             md5 = util.gen_md5(os.path.join(cwd, 'output.json'))
             json_conf = json.dumps({'uuid':uuid, 'addr':myaddr, \
