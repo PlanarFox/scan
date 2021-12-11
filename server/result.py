@@ -55,3 +55,7 @@ def zgrab(cwd):
     except:
         return False, util.error_record('Failed when generating result.', logger, stream_handler, errIO)
     return True, None
+
+def zMnG(cwd):
+    valid, message = zgrab(cwd)
+    return valid, message

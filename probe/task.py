@@ -62,9 +62,6 @@ def receive_task(task_type):
                     logger.error('User uploaded data is broken. File location:%s, md5 sent was %s', os.path.join(cwd, str(key)), value)
                     return util.bad_request('File is broken.')
 
-            #for key, _ in request.files.items():
-            #    request.files[key].save(os.path.join(cwd, str(key)))
-            #    if not util.integrity_check(os.path.join(cwd, str(key)), config['md5'][str(key)]):
         except:
             return util.bad_request(util.error_record('Fail to load data from user\'s post.', logger, stream_handler, errIO))
 

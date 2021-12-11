@@ -105,14 +105,16 @@ def error_record(message, logger, handler, io):
     io.seek(0)
     return io.read()
 
-def file_integrater(file_dict, config, chunk_size = 1048576):
+def file_integrater(file_dict, cwd, config, chunk_size = 1048576):
     # Only for plain text files
     # The key is the file name on local machine, the value is the file name on remote machine
-    with open('tmp_config', 'w') as f:
+    tmp_config = os.path.join(cwd, 'tmp_config')
+    integrated = os.path.join(cwd, 'integrated')
+    with open(tmp_config, 'w') as f:
         f.write(config)
-    with open('integrated', 'w') as f:
-        with open('tmp_config', 'r') as fp:
-            f.write(str(os.path.getsize('tmp_config')) + '\n')
+    with open(integrated, 'w') as f:
+        with open(tmp_config, 'r') as fp:
+            f.write(str(os.path.getsize(tmp_config)) + '\n')
             f.write(fp.read())
         for local_name, remote_name in file_dict.items():
             f.write(remote_name + '\n')
@@ -123,8 +125,8 @@ def file_integrater(file_dict, config, chunk_size = 1048576):
                     if not chunk:
                         break
                     f.write(chunk)
-    os.remove('tmp_config')
-    return os.path.join(os.getcwd(), 'integrated'), hashlib.md5(config.encode()).hexdigest()
+    os.remove(tmp_config)
+    return integrated, hashlib.md5(config.encode()).hexdigest()
 
 def file_saver(request, cwd, chunk_size=1048576):
     tmp_dir = os.path.join(cwd, 'tmp')

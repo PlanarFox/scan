@@ -20,4 +20,10 @@ def zgrab(args):
     if not temp[0]:
         return False, 'Probe '+ temp[1] +' aren\'t available.'
     return True, None
+
+def zMnG(args):
+    temp = check_probe(args['probe'], 'zMnG')
+    if not temp[0]:
+        return False, 'Probe '+ temp[1] +' aren\'t available.'
+    return True, None
     

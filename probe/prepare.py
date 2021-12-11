@@ -11,7 +11,7 @@ stream_handler.setLevel(level=logging.ERROR)
 stream_handler.setFormatter(logging.Formatter(fmt="%(asctime)s - %(name)s - %(levelname)s - %(filename)s - %(funcName)s - %(lineno)d - %(message)s"))
 logger.addHandler(stream_handler)
 
-def zmap(cwd, uuid, config, myaddr, **args):
+def zmap(cwd, uuid, config, myaddr, zgrab_enable=False, **args):
     if config is None:
         logger.error('Config for %s not found.', uuid)
         return False, 'Config not found.'
@@ -32,7 +32,11 @@ def zmap(cwd, uuid, config, myaddr, **args):
     except:
         return False, util.error_record('Fail when getting interface info.', logger, stream_handler, errIO)
     try:
-        t1 =threading.Thread(target=getattr(run, 'zmap'), 
+        if not zgrab_enable:
+            t1 =threading.Thread(target=getattr(run, 'zmap'), 
+                                args=(cwd, uuid, config, net_info, myaddr))
+        else:
+            t1 =threading.Thread(target=getattr(run, 'zMnG'), 
                                 args=(cwd, uuid, config, net_info, myaddr))
         t1.start()
     except Exception:
@@ -53,3 +57,7 @@ def zgrab(cwd, uuid, config, myaddr, **args):
     except Exception:
         return False, util.error_record('', logger, stream_handler, errIO)
     return True, None
+
+def zMnG(cwd, uuid, config, myaddr, **args):
+    valid, message = zmap(cwd, uuid, config, myaddr, True)
+    return valid, message

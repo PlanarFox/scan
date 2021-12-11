@@ -41,11 +41,21 @@ elif config['type'] == 'zgrab':
     file_dict = {}
     md5['target'] = util.gen_md5(config['args']['target'])
     file_dict[config['args']['target']] = 'target'
-    #file['target'] = open(config['args']['target'], 'rb')
     if config['args'].get('multiple', None):
         md5['mul'] = util.gen_md5(config['args']['multiple'])
-        #file['mul'] = open(config['args']['multiple'], 'rb')
         file_dict[config['args']['multiple']] = 'mul'
+    integrated, conf_md5 = util.file_integrater(file_dict, json.dumps({'config':config, 'md5':md5}))
+    with open(integrated, 'rb') as f:
+        r = requests.post(url = task_url, data = f, params={'md5':conf_md5}, stream=True)
+    os.remove(integrated)
+elif config['type'] == 'zMnG':
+    md5 = {}
+    file_dict = {}
+    md5['target'] = util.gen_md5(config['args']['target'])
+    file_dict[config['args']['target']] = 'target'
+    if config['args']['zgrab'].get('multiple', None):
+        md5['mul'] = util.gen_md5(config['args']['zgrab']['multiple'])
+        file_dict[config['args']['zgrab']['multiple']] = 'mul'
     integrated, conf_md5 = util.file_integrater(file_dict, json.dumps({'config':config, 'md5':md5}))
     with open(integrated, 'rb') as f:
         r = requests.post(url = task_url, data = f, params={'md5':conf_md5}, stream=True)

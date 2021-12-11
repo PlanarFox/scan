@@ -50,8 +50,6 @@ def submition_recv(task_type):
                 return util.bad_request('File is broken.')
             else:
                 logger.info('Result from task received, uuid:%s', uuid)
-        #for key, _ in request.files.items():
-        #    request.files[key].save(os.path.join(os.path.join(cwd, probe), str(key)))
     except:
         return util.bad_request(util.error_record('Fail to load data from user\'s post.', logger, stream_handler, errIO))
 
