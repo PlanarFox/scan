@@ -1,0 +1,15 @@
+scheduler:
+  addr: 'localhost'
+  port: '80'
+type: 'zMnG'
+args:
+  ipv6: 'disable'
+  probe:
+    - '192.168.0.100:8888'
+  target: 'list_v4.txt'
+  zmap:
+    args:
+      -f: '"saddr"'
+      -p: '443'
+  zgrab:
+    type: 'tls'
