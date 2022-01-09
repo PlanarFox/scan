@@ -18,9 +18,9 @@ def run_command(command, error_file):
     result = None
     error_message = None
     try:
+        logger.info('Running command:%s', command)
         result = subprocess.run(command, shell=True, stdout=None,
                                 stderr=subprocess.PIPE, encoding='utf-8', check=False)
-        logger.info('Running command:%s', command)
     except:
         error_message = util.error_record('Fail when running command:%s' % (command), logger, stream_handler, errIO)
         with open(error_file, 'w') as f:

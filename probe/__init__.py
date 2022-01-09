@@ -16,4 +16,4 @@ app = Flask(__name__)
 from task import *
 
 if __name__ == '__main__':
-    app.run(debug=True, port=8888)
+    app.run(debug=True, port=8888, host='0.0.0.0')
