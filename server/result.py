@@ -59,3 +59,7 @@ def zgrab(cwd):
 def zMnG(cwd):
     valid, message = zgrab(cwd)
     return valid, message
+
+def lzr(cwd):
+    valid, message = zgrab(cwd)
+    return valid, message

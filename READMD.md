@@ -17,3 +17,6 @@ The field "--ipv6-source-ip", "--ipv6-target-file" and '-o' will be ignored.
 If you want to use ipv4 instead of ipv6
 (Need to be completed)
 PLEASE END THE TARGET FILE WITH '\n'.
+
+# lzr 
+You should manually create a soft link with command "ln -s /usr/lib/x86_64-linux-gnu/libpcap.so /usr/lib/x86_64-linux-gnu/libpcap.so.1" or the lzr won't work properly.

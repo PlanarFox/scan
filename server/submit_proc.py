@@ -75,3 +75,7 @@ def zgrab(cwd, uuid, probe, error, **kw):
 def zMnG(cwd, uuid, probe, error, **kw):
     valid, message = zgrab(cwd, uuid, probe, error)
     return valid, message
+
+def lzr(cwd, uuid, probe, error, **kw):
+    valid, message = zgrab(cwd, uuid, probe, error)
+    return valid, message

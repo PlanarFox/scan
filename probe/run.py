@@ -44,7 +44,7 @@ def file_sender(url, file_dict, cwd, config, uuid):
                 os.remove(integrated)
                 break
         except:
-            time.sleep(1.0)
+            time.sleep(15)
             logger.error('Task POST failed %d time(s)\n' % (i), exc_info=True)
             continue
 
@@ -109,15 +109,26 @@ def zgrab_command_parser(zgrab_type, zgrab_args, cwd):
     if os.path.isfile(os.path.join(cwd, 'mul')) and zgrab_type == 'multiple':
         with open(os.path.join(cwd, 'mul.ini'), 'w') as fw:
             with open(os.path.join(cwd, 'mul'), 'r') as fr:
-                origin = fr.readlines()
-                fw.writelines('[Application Options]\n')
-                if zgrab_args['-o'] != '-':
-                    fw.writelines('output-file=%s\n' % (zgrab_args['-o']))
-                if zgrab_args['-f'] != '-':
-                    fw.writelines('input-file=%s\n' % (zgrab_args['-f']))
-                fw.writelines(origin[3:])
+                #origin = fr.readlines()
+                for line in fr.readlines():
+                    if 'output-file' not in line and 'input-file' not in line:
+                        fw.writelines(line)
+                #fw.writelines('[Application Options]\n')                
+                #fw.writelines(origin[3:])
         command += ' -c \"' + os.path.join(cwd, 'mul.ini') + '\"'
     return command
+
+def lzr_command_parser(cwd, args, net_info, ipv6):
+    command = '/usr/local/sbin/lzr'
+    if ipv6:
+        command += ' -6'
+    args['-sendInterface'] = net_info[1]
+    args['-gatewayMac'] = net_info[2]
+    args['-sourceIP'] = net_info[0]
+    for key, item in args.items():
+        command += ' ' + key + ' ' + item
+    return command
+    
 
 def zmap(cwd, uuid, config, net_info, myaddr, ipv6, **kw):
     try:
@@ -174,7 +185,7 @@ def zMnG(cwd, uuid, config, net_info, myaddr, ipv6, **kw):
         args = config.get('args', None)
         if isinstance(args, dict):
             args = args.get('zmap')
-        if not isinstance(args, dict):
+        else:
             args = dict()
             args['args'] = dict()
         args['args']['-O'] = 'csv'
@@ -211,3 +222,49 @@ def zMnG(cwd, uuid, config, net_info, myaddr, ipv6, **kw):
         file_sender(url, file_dict, cwd, json_conf, uuid)
     except:
         logger.error('Error when running zmap&zgrab task.\n', exc_info=True)
+
+def lzr(cwd, uuid, config, net_info, myaddr, ipv6, **kw):
+    try:
+        zmap_args = config.get('args', None)
+        if isinstance(zmap_args, dict):
+            zmap_args = zmap_args.get('zmap')
+        else:
+            zmap_args = dict()
+            zmap_args['args'] = dict()
+        zmap_args['args']['-O'] = 'json'
+        zmap_args['args']['-f'] = '"saddr,daddr,sport,dport,seqnum,acknum,window"'
+        port = zmap_args['args']['-p']
+
+        command = zmap_command_parser(cwd, zmap_args, net_info, myaddr, ipv6)
+
+        lzr_args = config.get('args', None)
+        if isinstance(lzr_args, dict):
+            lzr_args = lzr_args.get('lzr')
+        else:
+            lzr_args = dict()
+        lzr_args['-feedZGrab'] = ''
+        lzr_args['-f'] = '/dev/null'
+        command += ' | ' + lzr_command_parser(cwd, lzr_args, net_info, ipv6)
+
+        with open(os.path.join(os.getcwd(), 'lzr_zgrab.ini'), 'r') as fr:
+            with open(os.path.join(cwd, 'zgrab.ini'), 'w') as fw:
+                for line in fr.readlines():
+                    if 'port=x' in line:
+                        fw.writelines('port=' + port + '\n')
+                    else:
+                        fw.writelines(line)
+        
+        command += ' | /usr/local/sbin/zgrab multiple -c \"'
+        command += os.path.join(cwd, 'zgrab.ini')
+        command += '\" -o \"' + os.path.join(cwd, 'output.json') + '\"'
+
+        error_message = run_command(command, os.path.join(cwd, 'output.json'))
+        url = util.api_url(config['scheduler']['addr'], '/submit/lzr', config['scheduler']['port'])
+        file_dict = {os.path.join(cwd, 'output.json'):'result.json'}
+        md5 = util.gen_md5(os.path.join(cwd, 'output.json'))
+        json_conf = json.dumps({'uuid':uuid, 'addr':myaddr, \
+                                'md5':{'result.json':md5}, 'error':error_message is not None})
+        file_sender(url, file_dict, cwd, json_conf, uuid)
+        
+    except:
+        logger.error('Error when running LZR task.\n', exc_info=True)

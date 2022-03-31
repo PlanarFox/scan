@@ -40,7 +40,7 @@ def target_split(cwd, probe, probe_index, num, total_probe, f, filename):
                 fp.writelines(line)
 
 
-def zmap(cwd, config, task_id):
+def zmap(cwd, config, task_id, location=None):
     args, num = get_num_args(cwd, config)
     if args is None:
         return False, num
@@ -49,30 +49,12 @@ def zmap(cwd, config, task_id):
         for i in range(len(args['probe'])):
             probe = args['probe'][i]
 
-            '''
-            try:
-                if os.path.isdir(os.path.join(cwd, probe)):
-                    os.rmdir(os.path.join(cwd, probe))
-                os.mkdir(os.path.join(cwd, probe))
-            except:
-                logger.error('Error when creating probe directory', exc_info=True)
-                return False, 'Error when creating probe directory'
-
-            with open(os.path.join(os.path.join(cwd, probe), 'target.txt'), 'w') as fp:
-                if i+1 != len(args['probe']):
-                    for i in range(num):
-                        line = f.readline()
-                        fp.writelines(line)
-                else:
-                    while True:
-                        line = f.readline()
-                        if not line:
-                            break
-                        fp.writelines(line)
-            '''
             target_split(cwd, probe, i, num, len(args['probe']), f, 'target.txt')
             try:
-                url = util.api_url(probe, '/tasks/zmap')
+                if location is None:
+                    url = util.api_url(probe, '/tasks/zmap')
+                else:
+                    url = util.api_url(probe, location)
                 md5 = util.gen_md5(os.path.join(os.path.join(cwd, probe), 'target.txt'))
                 file_dict = {os.path.join(os.path.join(cwd, probe), 'target.txt'):'target.txt'}
                 integrated, conf_md5 = util.file_integrater(file_dict, os.path.join(cwd, probe),\
@@ -99,27 +81,6 @@ def zgrab(cwd, config, task_id, location=None):
         for i in range(len(args['probe'])):
             probe = args['probe'][i]
 
-            '''
-            try:
-                if os.path.isdir(os.path.join(cwd, probe)):
-                    os.rmdir(os.path.join(cwd, probe))
-                os.mkdir(os.path.join(cwd, probe))
-            except:
-                logger.error('Error when creating probe directory', exc_info=True)
-                return False, 'Error when creating probe directory'
-
-            with open(os.path.join(os.path.join(cwd, probe), 'target.txt'), 'w') as fp:
-                if i+1 != len(args['probe']):
-                    for i in range(num):
-                        line = f.readline()
-                        fp.writelines(line)
-                else:
-                    while True:
-                        line = f.readline()
-                        if not line:
-                            break
-                        fp.writelines(line)
-            '''
             target_split(cwd, probe, i, num, len(args['probe']), f, 'target.txt')
             try:
                 if location is None:
@@ -147,4 +108,8 @@ def zgrab(cwd, config, task_id, location=None):
 
 def zMnG(cwd, config, task_id):
     valid, message = zgrab(cwd, config, task_id, '/tasks/zMnG')
+    return valid, message
+
+def lzr(cwd, config, task_id):
+    valid, message = zmap(cwd, config, task_id, '/tasks/lzr')
     return valid, message

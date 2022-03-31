@@ -26,4 +26,10 @@ def zMnG(args):
     if not temp[0]:
         return False, 'Probe '+ temp[1] +' aren\'t available.'
     return True, None
+
+def lzr(args):
+    temp = check_probe(args['probe'], 'lzr')
+    if not temp[0]:
+        return False, 'Probe '+ temp[1] +' aren\'t available.'
+    return True, None
     

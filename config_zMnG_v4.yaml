@@ -4,6 +4,7 @@ scheduler:
 type: 'zMnG'
 args:
   ipv6: 'disable'
+  refresh_netinfo: false
   probe:
     - '192.168.0.100:8888'
   target: 'list_v4.txt'

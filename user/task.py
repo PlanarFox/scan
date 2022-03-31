@@ -29,7 +29,7 @@ if not util.api_has_platform(server + ':' + port):
 
 print('Uploading files. This may take a while...')
 task_url = util.api_url(server, '/tasks', port)
-if config['type'] == 'zmap':
+if config['type'] == 'zmap' or config['type'] == 'lzr':
     md5 = util.gen_md5(config['args']['target'])
     file_dict = {config['args']['target']:'target'}
     integrated, conf_md5 = util.file_integrater(file_dict, json.dumps({'config':config, 'md5':{'target':md5}}))
