@@ -122,9 +122,9 @@ def lzr_command_parser(cwd, args, net_info, ipv6):
     command = '/usr/local/sbin/lzr'
     if ipv6:
         command += ' -6'
-    args['-sendInterface'] = net_info[1]
-    args['-gatewayMac'] = net_info[2]
-    args['-sourceIP'] = net_info[0]
+    args['-sendInterface'] = '\"' + net_info[1] + '\"'
+    args['-gatewayMac'] = '\"' + net_info[2] + '\"'
+    args['-sourceIP'] = '\"' + net_info[0] + '\"'
     for key, item in args.items():
         command += ' ' + key + ' ' + item
     return command
@@ -243,7 +243,7 @@ def lzr(cwd, uuid, config, net_info, myaddr, ipv6, **kw):
         else:
             lzr_args = dict()
         lzr_args['-feedZGrab'] = ''
-        lzr_args['-f'] = '/dev/null'
+        lzr_args['-f'] = '\"/dev/null\"'
         command += ' | ' + lzr_command_parser(cwd, lzr_args, net_info, ipv6)
 
         with open(os.path.join(os.getcwd(), 'lzr_zgrab.ini'), 'r') as fr:
