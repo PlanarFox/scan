@@ -1,4 +1,6 @@
 import json
+from pathlib import Path
+import shutil
 import requests
 import subprocess
 import util
@@ -6,6 +8,8 @@ import os
 import time
 import logging
 from io import StringIO
+
+SHARD_UPPER_BOUND = 10
 
 logger = logging.getLogger('probe')
 errIO = StringIO()
@@ -20,7 +24,7 @@ def run_command(command, error_file):
     try:
         logger.info('Running command:%s', command)
         result = subprocess.run(command, shell=True, stdout=None,
-                                stderr=subprocess.PIPE, encoding='utf-8', check=False)
+                                stderr=subprocess.PIPE, encoding='utf-8', check=True)
     except:
         error_message = util.error_record('Fail when running command:%s' % (command), logger, stream_handler, errIO)
         with open(error_file, 'w') as f:
@@ -48,7 +52,7 @@ def file_sender(url, file_dict, cwd, config, uuid):
             logger.error('Task POST failed %d time(s)\n' % (i), exc_info=True)
             continue
 
-def zmap_command_parser(cwd, args, net_info, myaddr, ipv6):
+def zmap_command_parser(cwd, args, net_info, myaddr, ipv6, input_file):
     command = '/usr/local/sbin/zmap'
     if args is not None:
         filt_out_list = ['--ipv6-source-ip', '--ipv6-target-file', '-i', '-G', '--blocklist-file', '--allowlist-file']
@@ -60,9 +64,9 @@ def zmap_command_parser(cwd, args, net_info, myaddr, ipv6):
                     command += ' ' + key
     if not ipv6:
         if args.get('blacklist', None) == 'enable':
-            command += ' --blocklist-file=\"' + os.path.join(cwd, 'target.txt') + '\"'
+            command += ' --blocklist-file=\"' + input_file + '\"'
         else:
-            command += ' --allowlist-file=\"' + os.path.join(cwd, 'target.txt') + '\"'
+            command += ' --allowlist-file=\"' + input_file + '\"'
         probe_spec_conf = args.get('probe', None)
         if isinstance(probe_spec_conf, dict):
             probe_spec_conf = probe_spec_conf.get(myaddr, None)
@@ -87,7 +91,7 @@ def zmap_command_parser(cwd, args, net_info, myaddr, ipv6):
                 else:
                     command += ' ' + key + ' ' + item
         command += ' --ipv6-source-ip=\"' + net_info[0] + '\"'
-        command += ' --ipv6-target-file=\"' + os.path.join(cwd, 'target.txt') + '\"'
+        command += ' --ipv6-target-file=\"' + input_file + '\"'
 
     if net_info[1] is not None:
         command += ' -i \"' + net_info[1] + '\"'
@@ -129,34 +133,84 @@ def lzr_command_parser(cwd, args, net_info, ipv6):
         command += ' ' + key + ' ' + item
     return command
     
+def target_generator(cwd, target_files_loc, upper_bound) -> Path():
+    target_files = list(Path(target_files_loc).iterdir())
+    target_idx = 0
+    round_count = 0
+    line_count = 0
+    no_more_file = False
+    # TODO:根据内存大小判断读取地址数目
+    load_file = open(target_files[target_idx], 'r')
+    while True:
+        input_file_loc = os.path.join(cwd, f'target-{round_count}.txt')
+        with open(input_file_loc, 'w') as input_file:
+            while line_count < upper_bound:
+                while (line:= load_file.readline()) and (line_count < upper_bound):
+                    input_file.writelines(line)
+                    line_count += 1
+                if line_count < upper_bound:
+                    load_file.close()                    
+                    target_idx += 1
+                    if target_idx == len(target_files):
+                        no_more_file = True
+                        break
+                    load_file = open(target_files[target_idx], 'r')
+        yield input_file_loc
+        if no_more_file:
+            return
+        line_count = 0
+        round_count += 1
+        
 
-def zmap(cwd, uuid, config, net_info, myaddr, ipv6, **kw):
+
+def zmap(cwd, uuid, config, net_info, myaddr, ipv6, target_files_loc, **kw):
     try:
         args = config.get('args', None)
+        output_dir = os.path.join(cwd, 'output_single.csv')
+        full_output_dir = os.path.join(cwd, 'output.csv')
+
         if not isinstance(args, dict):
             args = dict()
             args['args'] = dict()
         args['args']['-O'] = 'csv'
-        args['args']['-o'] = '\"' + os.path.join(cwd, 'output.csv') + '\"'
+        args['args']['-o'] = '\"' + output_dir + '\"'
 
-        command = zmap_command_parser(cwd, args, net_info, myaddr, ipv6)
-        error_message = run_command(command, os.path.join(cwd, 'output.csv'))      
+        try:
+            input_file_gen = target_generator(cwd, target_files_loc, SHARD_UPPER_BOUND)
+            while True:
+                input_dir = next(input_file_gen)
+                command = zmap_command_parser(cwd, args, net_info, myaddr, ipv6, input_dir)
+                error_message = run_command(command, output_dir)
+                if error_message is None:
+                    with open(full_output_dir, 'a') as  write_f:
+                        with open(output_dir, 'r') as read_f:
+                            read_f.readline()
+                            while line:= read_f.readline():
+                                write_f.writelines(line)
+                    os.remove(output_dir)
+                    os.remove(input_dir)
+                else:
+                    Path(output_dir).replace(full_output_dir)
+                    break
+        except StopIteration:
+            logger.debug('all target addresses have been covered.')
+              
         
         url = util.api_url(config['scheduler']['addr'], '/submit/zmap', config['scheduler']['port'])
-        file_dict = {os.path.join(cwd, 'output.csv'):'result.txt'}
-        md5 = util.gen_md5(os.path.join(cwd, 'output.csv'))
+        file_dict = {full_output_dir:'result.txt'}
+        md5 = util.gen_md5(full_output_dir)
         json_conf = json.dumps({'uuid':uuid, 'addr':myaddr, \
                                 'md5':{'result.txt':md5}, 'error':error_message is not None})
         file_sender(url, file_dict, cwd, json_conf, uuid)
     except:
         logger.error('Error when running zmap task.\n', exc_info=True)
 
-def zgrab(cwd, uuid, config, myaddr, **kw):
+def zgrab(cwd, uuid, config, myaddr, target_files_loc, **kw):
     try:
         try:
             zgrab_type = config['args']['type']
         except:
-            raise logger.error('Zgrab task type of task %s not found' % (uuid), logger, stream_handler, errIO)
+            raise Exception(logger.error('Zgrab task type of task %s not found' % (uuid), logger, stream_handler, errIO))
         zgrab_args = config['args'].get('args', None)
         if not isinstance(zgrab_args, dict):
             zgrab_args = dict()
@@ -175,7 +229,7 @@ def zgrab(cwd, uuid, config, myaddr, **kw):
     except:
         logger.error('Error when running zgrab task.\n', exc_info=True)
                 
-def zMnG(cwd, uuid, config, net_info, myaddr, ipv6, **kw):
+def zMnG(cwd, uuid, config, net_info, myaddr, ipv6, target_files_loc, **kw):
     try:
         try:
             zgrab_type = config['args']['zgrab']['type']
@@ -223,7 +277,7 @@ def zMnG(cwd, uuid, config, net_info, myaddr, ipv6, **kw):
     except:
         logger.error('Error when running zmap&zgrab task.\n', exc_info=True)
 
-def lzr(cwd, uuid, config, net_info, myaddr, ipv6, **kw):
+def lzr(cwd, uuid, config, net_info, myaddr, ipv6, target_files_loc, **kw):
     try:
         zmap_args = config.get('args', None)
         if isinstance(zmap_args, dict):

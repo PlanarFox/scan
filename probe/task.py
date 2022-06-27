@@ -9,6 +9,8 @@ import prepare
 import logging
 from io import StringIO
 import hashlib
+from pathlib import Path
+import shutil
 
 logger = logging.getLogger('probe')
 errIO = StringIO()
@@ -56,10 +58,14 @@ def receive_task(task_type):
             return util.bad_request('Failed when create/find working directory.')
 
         try:
-            util.file_saver(request, cwd)
+            data_file_loc = Path(cwd) / 'rcv_data'
+            if data_file_loc.exists():
+                shutil.rmtree(data_file_loc)
+            Path.mkdir(data_file_loc)
+            util.file_saver(request, str(data_file_loc))
             for key, value in config['md5'].items():
-                if not util.integrity_check(os.path.join(cwd, str(key)), value):
-                    logger.error('User uploaded data is broken. File location:%s, md5 sent was %s', os.path.join(cwd, str(key)), value)
+                if not util.integrity_check(os.path.join(str(data_file_loc), str(key)), value):
+                    logger.error('User uploaded data is broken. File location:%s, md5 sent was %s', os.path.join(str(data_file_loc), str(key)), value, exc_info=True)
                     return util.bad_request('File is broken.')
 
         except:
@@ -67,7 +73,7 @@ def receive_task(task_type):
 
 
         logger.debug('Preparing for task %s', uuid)
-        valid, message = getattr(prepare, task_type)(cwd, uuid, config.get('config', None), config.get('probe'))
+        valid, message = getattr(prepare, task_type)(cwd, uuid, config.get('config', None), config.get('probe'), data_file_loc)
 
         if not valid:
             return util.bad_request('Failed to complete task:' + message)
@@ -76,9 +82,14 @@ def receive_task(task_type):
         try:
             getattr(prepare, task_type)
         except AttributeError:
-            logger.error('Such type \"%s\" of tasks are not supported.' % (task_type))
+            logger.error('Such type \"%s\" of tasks are not supported.' % (task_type), exc_info=True)
             return util.bad_request('Such type \"%s\" of tasks are not supported.' % (task_type))
-        return util.ok()
+        try:
+            return util.json_return(json.dumps(util.get_hw_info(os.getcwd())))
+        except:
+            message = 'Error occured when getting hardware info.'
+            logger.error(message, exc_info=True)
+            return util.bad_request(message)
     
 
 

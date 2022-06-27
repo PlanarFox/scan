@@ -1,10 +1,14 @@
 import socket
+from typing import Dict
 from urllib.parse import urlparse
 import requests
 from flask import Response
 import subprocess
 import hashlib
 import os
+import random
+import json
+from pathlib import Path
 
 def api_local_host():
     return 'localhost'
@@ -73,13 +77,20 @@ def api_has_platform(hostport, timeout=5):
     return r.status_code == 200
 
 def json_return(data):
-    return Response(data + '\n', mimetype='application/json')
+    return Response(data, mimetype='application/json')
 
 def bad_request(message='Bad Request'):
     return Response(message + '\n', status=400, mimetype='text/plain')
     
 def ok(message="OK", mimetype=None):
     return Response(message + '\n', status=200, mimetype=mimetype)
+
+def get_hw_info(cwd) -> Dict:
+    info = json.load(open(Path(cwd) / 'hw_info.json'))
+    # CPU in MHz, bandwidth in Mbps, disk in GBytes, all should be integer
+    # TODO: Automaticlly get hardware info
+    return info
+
 
 def getv6addr(logger):
     # Catch the Exception outside the function to use logger
@@ -180,8 +191,9 @@ def error_record(message, logger, handler, io):
 def file_integrater(file_dict, cwd, config, chunk_size = 1048576):
     # Only for plain text files
     # The key is the file name on local machine, the value is the file name on remote machine
-    tmp_config = os.path.join(cwd, 'tmp_config')
-    integrated = os.path.join(cwd, 'integrated')
+    rand_num = str(random.randint(0, 1000))
+    tmp_config = os.path.join(cwd, f'tmp_config{rand_num}')
+    integrated = os.path.join(cwd, f'integrated{rand_num}')
     with open(tmp_config, 'w') as f:
         f.write(config)
     with open(integrated, 'w') as f:
@@ -201,7 +213,8 @@ def file_integrater(file_dict, cwd, config, chunk_size = 1048576):
     return integrated, hashlib.md5(config.encode()).hexdigest()
 
 def file_saver(request, cwd, chunk_size=1048576):
-    tmp_dir = os.path.join(cwd, 'tmp')
+    rand_num = str(random.randint(0, 1000))
+    tmp_dir = os.path.join(cwd, f'tmp{rand_num}')
     with open(tmp_dir, 'wb') as f:
         while True:
             chunk = request.stream.read(chunk_size)

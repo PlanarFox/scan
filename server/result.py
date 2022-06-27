@@ -15,6 +15,7 @@ def zmap(cwd):
     total = 0
     count = 0
     try:
+        '''
         for item in os.listdir(cwd):
             path = os.path.join(cwd, item)
             if os.path.isdir(path):
@@ -22,11 +23,13 @@ def zmap(cwd):
                     statistics = json.loads(f.read())
                     total += statistics['total']
                     count += statistics['hit']
+        '''
         
         with open(os.path.join(cwd, 'result'), 'w') as f:
-            f.writelines(['total:'+str(total), '\nhit:'+str(count), '\n-------------------\n'])
-            for item in os.listdir(cwd):
-                path = os.path.join(cwd, item)
+            #f.writelines(['total:'+str(total), '\nhit:'+str(count), '\n-------------------\n'])
+            probe_path = os.path.join(cwd, 'probe')
+            for item in os.listdir(probe_path):
+                path = os.path.join(probe_path, item)
                 if os.path.isdir(path):
                     with open(os.path.join(path, 'result_sorted.txt'), 'r') as fp:
                         while True:

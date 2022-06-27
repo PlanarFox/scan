@@ -6,6 +6,9 @@ args:
   probe:
     - 'localhost:8888'
   target: 'list.txt'
+  shards: 10
+  rand_seed: 45
+  method: 'optimize'
   args:
     -M: 'ipv6_tcp_synscan'
     -f: '"saddr"'

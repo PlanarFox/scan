@@ -13,7 +13,7 @@ stream_handler.setLevel(level=logging.ERROR)
 stream_handler.setFormatter(logging.Formatter(fmt="%(asctime)s - %(name)s - %(levelname)s - %(filename)s - %(funcName)s - %(lineno)d - %(message)s"))
 logger.addHandler(stream_handler)
 
-def zmap(cwd, uuid, config, myaddr, module=None, **args):
+def zmap(cwd, uuid, config, myaddr, target_files_loc, module=None):
     if config is None:
         logger.error('Config for %s not found.', uuid)
         return False, 'Config not found.'
@@ -54,16 +54,16 @@ def zmap(cwd, uuid, config, myaddr, module=None, **args):
     try:
         if module is None:
             t1 =threading.Thread(target=getattr(run, 'zmap'), 
-                                args=(cwd, uuid, config, net_info, myaddr, ipv6))
+                                args=(cwd, uuid, config, net_info, myaddr, ipv6, target_files_loc))
         else:
             t1 =threading.Thread(target=getattr(run, module), 
-                                args=(cwd, uuid, config, net_info, myaddr, ipv6))
+                                args=(cwd, uuid, config, net_info, myaddr, ipv6, target_files_loc))
         t1.start()
     except Exception:
         return False, util.error_record('', logger, stream_handler, errIO)
     return True, None
 
-def zgrab(cwd, uuid, config, myaddr, **args):
+def zgrab(cwd, uuid, config, myaddr, target_files_loc, **args):
     if config is None:
         logger.error('Config for %s not found.', uuid)
         return False, 'Config not found.'
@@ -72,16 +72,16 @@ def zgrab(cwd, uuid, config, myaddr, **args):
         return False, 'Can\'t get probe addr.'
     try:
         t1 =threading.Thread(target=getattr(run, 'zgrab'), 
-                                args=(cwd, uuid, config, myaddr))
+                                args=(cwd, uuid, config, myaddr, target_files_loc))
         t1.start()
     except Exception:
         return False, util.error_record('', logger, stream_handler, errIO)
     return True, None
 
-def zMnG(cwd, uuid, config, myaddr, **args):
-    valid, message = zmap(cwd, uuid, config, myaddr, 'zMnG')
+def zMnG(cwd, uuid, config, myaddr, target_files_loc, **args):
+    valid, message = zmap(cwd, uuid, config, myaddr, target_files_loc, 'zMnG')
     return valid, message
 
-def lzr(cwd, uuid, config, myaddr, **args):
-    valid, message = zmap(cwd, uuid, config, myaddr, 'lzr')
+def lzr(cwd, uuid, config, myaddr, target_files_loc, **args):
+    valid, message = zmap(cwd, uuid, config, myaddr, target_files_loc, 'lzr')
     return valid, message

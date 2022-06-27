@@ -1,5 +1,6 @@
 import hashlib
 import os
+from pathlib import Path
 import sys
 sys.path.append(os.path.join(os.getcwd(), '..'))
 from server import app
@@ -38,15 +39,16 @@ def submition_recv(task_type):
     if not os.path.isdir(cwd):
         logger.error('Unknown task submitted.')
         return util.bad_request('Unknown task.')
-    if not os.path.isdir(os.path.join(cwd, probe)):
+    probe_path = Path(cwd) / 'probe' / probe
+    if not probe_path.is_dir():
         logger.error('Unknown probe specified.')
         return util.bad_request('Unknown probe.')
 
     try:
-        util.file_saver(request, os.path.join(cwd, probe))
+        util.file_saver(request, str(probe_path))
         for key, value in args['md5'].items():
-            if not util.integrity_check(os.path.join(os.path.join(cwd, probe), str(key)), value):
-                logger.error('User uploaded data is broken. File location:%s', os.path.join(os.path.join(cwd, probe), str(key)))
+            if not util.integrity_check(str(probe_path / str(key)), value):
+                logger.error('User uploaded data is broken. File location:%s', str(probe_path / str(key)))
                 return util.bad_request('File is broken.')
             else:
                 logger.info('Result from task received, uuid:%s', uuid)

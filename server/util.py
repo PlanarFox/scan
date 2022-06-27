@@ -4,6 +4,7 @@ import requests
 from flask import Response
 import hashlib
 import os
+import random
 
 def api_local_host():
     return 'localhost'
@@ -72,7 +73,7 @@ def api_has_platform(hostport, timeout=5):
     return r.status_code == 200
 
 def json_return(data):
-    return Response(data + '\n', mimetype='application/json')
+    return Response(data, mimetype='application/json')
 
 def bad_request(message='Bad Request'):
     return Response(message + '\n', status=400, mimetype='text/plain')
@@ -108,8 +109,9 @@ def error_record(message, logger, handler, io):
 def file_integrater(file_dict, cwd, config, chunk_size = 1048576):
     # Only for plain text files
     # The key is the file name on local machine, the value is the file name on remote machine
-    tmp_config = os.path.join(cwd, 'tmp_config')
-    integrated = os.path.join(cwd, 'integrated')
+    rand_num = str(random.randint(0, 1000))
+    tmp_config = os.path.join(cwd, f'tmp_config{rand_num}')
+    integrated = os.path.join(cwd, f'integrated{rand_num}')
     with open(tmp_config, 'w') as f:
         f.write(config)
     with open(integrated, 'w') as f:
@@ -129,7 +131,8 @@ def file_integrater(file_dict, cwd, config, chunk_size = 1048576):
     return integrated, hashlib.md5(config.encode()).hexdigest()
 
 def file_saver(request, cwd, chunk_size=1048576):
-    tmp_dir = os.path.join(cwd, 'tmp')
+    rand_num = str(random.randint(0, 1000))
+    tmp_dir = os.path.join(cwd, f'tmp{rand_num}')
     with open(tmp_dir, 'wb') as f:
         while True:
             chunk = request.stream.read(chunk_size)

@@ -13,7 +13,7 @@ fi
 
 split -d -l ${lines_per_file} $1 $1__part__
 
-sed -i '1d' $1__part__"00"
+#sed -i '1d' $1__part__"00"
 
 for file in *__part__*
 

@@ -45,6 +45,8 @@ def create_task():
     if not valid:
         logger.error(message)
         return util.bad_request(message=message)
+    else:
+        info_dict = message
     
     try:
         cwd = os.path.join(os.getcwd(), 'data')
@@ -84,7 +86,7 @@ def create_task():
     except:
         return util.bad_request(util.error_record('Fail to load data from user\'s post.', logger, stream_handler, errIO))
 
-    valid, message = getattr(task_creation, config['type'])(cwd, config, task_id)
+    valid, message = getattr(task_creation, config['type'])(cwd, config, task_id, info_dict)
 
     if not valid:
         return util.bad_request(message=message)
@@ -100,8 +102,9 @@ def return_result(task_type, task_id):
     isdone = True
     haserror = False
     error_probe = None
-    for item in os.listdir(cwd):
-        path = os.path.join(cwd, item)
+    probe_path = os.path.join(cwd, 'probe')
+    for item in os.listdir(probe_path):
+        path = os.path.join(probe_path, item)
         if os.path.isdir(path):
             if os.path.isfile(os.path.join(path, 'error')):
                 haserror = True
