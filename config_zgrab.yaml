@@ -6,5 +6,6 @@ args:
   probe:
     - 'localhost:8888'
   target: 'list.txt'
+  port: 443
   type: 'multiple'
   multiple: 'mul.ini'

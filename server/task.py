@@ -1,17 +1,20 @@
 import hashlib
 import os
+from pathlib import Path
 import sys
 sys.path.append(os.path.join(os.getcwd(), '..'))
 from server import app
 import util
 import args_is_valid
 import task_creation 
-from flask import request, Response
+from task_status import task_status
+from flask import request
 import uuid
 import json
 import result
 import logging
 from io import StringIO
+import kill
 
 logger = logging.getLogger('server')
 errIO = StringIO()
@@ -32,7 +35,7 @@ def create_task():
         if request.args.get('md5', None) != hashlib.md5(config).hexdigest():
             return util.bad_request(util.error_record('User posted config is broken.', logger, stream_handler, errIO))
         config = json.loads(config)
-        md5 = config['md5']
+        md5 = config.get('md5', None)
         config = config['config']
     except Exception as e:
         return util.bad_request(util.error_record('Fail to load config from user\'s post.', logger, stream_handler, errIO))
@@ -79,14 +82,16 @@ def create_task():
 
     try:
         util.file_saver(request, cwd)
-        for key, value in md5.items():
-            if not util.integrity_check(os.path.join(cwd, str(key)), value):
-                logger.error('User uploaded data is broken. File location:%s, md5 sent was %s', os.path.join(cwd, str(key)), value)
-                return util.bad_request('File is broken.')
+        if isinstance(md5, dict):
+            for key, value in md5.items():
+                if not util.integrity_check(os.path.join(cwd, str(key)), value):
+                    logger.error('User uploaded data is broken. File location:%s, md5 sent was %s', os.path.join(cwd, str(key)), value)
+                    return util.bad_request('File is broken.')
     except:
         return util.bad_request(util.error_record('Fail to load data from user\'s post.', logger, stream_handler, errIO))
 
-    valid, message = getattr(task_creation, config['type'])(cwd, config, task_id, info_dict)
+    #valid, message = getattr(task_creation, config['type'])(cwd, config, task_id, info_dict)
+    valid, message = task_creation.create(cwd, config, task_id, info_dict)
 
     if not valid:
         return util.bad_request(message=message)
@@ -99,29 +104,13 @@ def return_result(task_type, task_id):
     if not os.path.isdir(cwd):
         logger.error('Task not found:%s', task_id)
         return util.bad_request('Invalid task id.')
-    isdone = True
-    haserror = False
-    error_probe = None
-    probe_path = os.path.join(cwd, 'probe')
-    for item in os.listdir(probe_path):
-        path = os.path.join(probe_path, item)
-        if os.path.isdir(path):
-            if os.path.isfile(os.path.join(path, 'error')):
-                haserror = True
-                error_probe = item
-                break
-            if not os.path.isfile(os.path.join(path, 'done')):
-                isdone = False
-                break
     
-    if haserror:
-        logger.error('Error occured when probe %s finishing task %s.', error_probe, task_id)
-        return util.bad_request('Task can\'t be done because error occured. Please check the log of probe %s' % error_probe)
-    
+    isdone, message = task_status(cwd, task_id)
     if not isdone:
-        logger.warn('Task %s hasn\'t done.', task_id)
-        return util.bad_request('Task hasn\'t done yet.')
-
+        logger.error(message)
+        return util.bad_request(message)
+    
+    '''
     valid, message = getattr(result, task_type)(cwd)
     if not valid:
         return util.bad_request(message=message)
@@ -138,8 +127,34 @@ def return_result(task_type, task_id):
     response = Response(generate(), mimetype='text/plain')
     response.headers['Content-Disposition'] = 'attachment; filename=result.txt'
     response.headers['content-length'] = os.path.getsize(os.path.join(cwd, 'result'))
-    return response
+    '''
+
+    return result.get_task_result(cwd, task_type)
 
     #return send_file(os.path.join(cwd, 'result'), mimetype='text/plain', as_attachment=True)
     
+@app.route('/myplatform/kill/<task_type>/<task_id>', methods=['GET'])
+def kill_task(task_type, task_id):
+    cwd = Path(Path.cwd() / 'data' / task_type / task_id)
+    if not cwd.is_dir():
+        logger.error('Task not found:%s', task_id)
+        return util.bad_request('Invalid task id.')
+    
+    isdone, message = task_status(cwd, task_id)
+    if isdone:
+        return util.bad_request('Task has done.')
+    
+    if (cwd / 'killed').is_file():
+        return util.bad_request('Task has been killed.')
 
+    try:
+        r = kill.kill_task(cwd, task_type, task_id)
+        if r is not None:
+            return util.bad_request(r)
+        else:
+            return util.ok()
+    except:
+        message = 'Failed when killing tasks.'
+        logger.error(message, exc_info=True)
+        return util.bad_request(message)
+    

@@ -30,9 +30,12 @@ if not util.api_has_platform(server + ':' + port):
 print('Uploading files. This may take a while...')
 task_url = util.api_url(server, '/tasks', port)
 if config['type'] == 'zmap' or config['type'] == 'lzr':
-    md5 = util.gen_md5(config['args']['target'])
-    file_dict = {config['args']['target']:'target'}
-    integrated, conf_md5 = util.file_integrater(file_dict, json.dumps({'config':config, 'md5':{'target':md5}}))
+    if config['args'].get('target', None) is not None:
+        md5 = util.gen_md5(config['args']['target'])
+        file_dict = {config['args']['target']:'target'}
+        integrated, conf_md5 = util.file_integrater(file_dict, json.dumps({'config':config, 'md5':{'target':md5}}))
+    else:
+        integrated, conf_md5 = util.file_integrater(None, json.dumps({'config':config}))
     with open(integrated, 'rb') as f:
         r = requests.post(url = task_url, data=f, params={'md5':conf_md5},stream=True)
     os.remove(integrated)
@@ -53,9 +56,10 @@ elif config['type'] == 'zMnG':
     file_dict = {}
     md5['target'] = util.gen_md5(config['args']['target'])
     file_dict[config['args']['target']] = 'target'
-    if config['args']['zgrab'].get('multiple', None):
-        md5['mul'] = util.gen_md5(config['args']['zgrab']['multiple'])
-        file_dict[config['args']['zgrab']['multiple']] = 'mul'
+    if config['args'].get('zgrab', None):
+        if config['args']['zgrab'].get('multiple', None):
+            md5['mul'] = util.gen_md5(config['args']['zgrab']['multiple'])
+            file_dict[config['args']['zgrab']['multiple']] = 'mul'
     integrated, conf_md5 = util.file_integrater(file_dict, json.dumps({'config':config, 'md5':md5}))
     with open(integrated, 'rb') as f:
         r = requests.post(url = task_url, data = f, params={'md5':conf_md5}, stream=True)

@@ -61,7 +61,7 @@ def zmap(cwd, uuid, probe, error, **kw):
     return True, None
 
 def zgrab(cwd, uuid, probe, error, **kw):
-    probe_cwd = os.path.join(cwd, probe)
+    probe_cwd = Path(cwd) / 'probe' / probe
     try:
         if error:
             os.rename(os.path.join(probe_cwd, 'result.json'), os.path.join(probe_cwd, 'error'))

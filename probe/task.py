@@ -1,4 +1,6 @@
+from email import message
 import os
+import signal
 import sys
 sys.path.append(os.path.join(os.getcwd(), '..'))
 from probe import app
@@ -11,6 +13,8 @@ from io import StringIO
 import hashlib
 from pathlib import Path
 import shutil
+from run import PID_FILE
+import subprocess
 
 logger = logging.getLogger('probe')
 errIO = StringIO()
@@ -92,6 +96,37 @@ def receive_task(task_type):
             return util.bad_request(message)
     
 
+@app.route('/myplatform/kill/<task_type>/<task_id>', methods=['GET'])
+def kill_task(task_type, task_id):
+    try:
+        cwd = Path(Path.cwd() / 'data' / task_type / task_id)
+        if not (cwd / 'killed').is_file():
+            with open(cwd / PID_FILE, 'r') as f:
+                pid = int(f.read().strip()) + 1
+            os.kill(pid, signal.SIGKILL)
+            logger.debug(f'Task with pid {str(pid)} killed')
+            Path(cwd / 'killed').touch()
+        return util.ok()
+    except:
+        message = f'Error when killing task {task_id}.'
+        logger.error(message, exc_info=True)
+        return util.bad_request(message)
 
-
+@app.route('/myplatform/killall', methods=['GET'])
+def kill_all_task():
+    try:
+        for cmd in ['zmap', 'zgrab']:
+            exe = f"ps -ef | grep {cmd} | grep -v grep | awk '{{print $2}}'"
+            output = subprocess.getoutput(exe).strip()
+            if len(output) == 0:
+                continue
+            pid_array = output.split('\n')
+            for pid in pid_array:
+                logger.debug(f'kill {cmd} with pid: {pid}')
+                os.kill(int(pid), signal.SIGKILL)
+        return util.ok()
+    except:
+        message = 'Error when killing task'
+        logger.error(message, exc_info=True)
+        return util.bad_request(message)
 

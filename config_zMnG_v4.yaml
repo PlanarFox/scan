@@ -8,9 +8,9 @@ args:
   probe:
     - '192.168.0.100:8888'
   target: 'list_v4.txt'
+  port: 443
   zmap:
     args:
       -f: '"saddr"'
-      -p: '443'
   zgrab:
     type: 'tls'

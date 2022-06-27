@@ -6,10 +6,14 @@ args:
   probe:
     - 'localhost:8888'
   target: 'list.txt'
+  port: 
+    443: 'tls'
+    80: 'http'
+  shards: 10
+  rand_seed: 45
+  method: 'optimize'
   zmap:
     args:
       -M: 'ipv6_tcp_synscan'
       -f: '"saddr"'
-      -p: '443'
   zgrab:
-    type: 'tls'

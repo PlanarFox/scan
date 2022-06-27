@@ -10,6 +10,7 @@ import logging
 from io import StringIO
 
 SHARD_UPPER_BOUND = 10
+PID_FILE = 'task.pid'
 
 logger = logging.getLogger('probe')
 errIO = StringIO()
@@ -18,20 +19,23 @@ stream_handler.setLevel(level=logging.ERROR)
 stream_handler.setFormatter(logging.Formatter(fmt="%(asctime)s - %(name)s - %(levelname)s - %(filename)s - %(funcName)s - %(lineno)d - %(message)s"))
 logger.addHandler(stream_handler)
 
-def run_command(command, error_file):
+def run_command(command, error_file, pid_file):
     result = None
     error_message = None
     try:
         logger.info('Running command:%s', command)
-        result = subprocess.run(command, shell=True, stdout=None,
-                                stderr=subprocess.PIPE, encoding='utf-8', check=True)
+        result = subprocess.Popen(command, shell=True, stdout=None,
+                                stderr=subprocess.PIPE, encoding='utf-8')
+        with open(pid_file, 'w') as f:
+            f.writelines(str(result.pid))
+        result.wait()
     except:
         error_message = util.error_record('Fail when running command:%s' % (command), logger, stream_handler, errIO)
         with open(error_file, 'w') as f:
             f.write(error_message)
     if result is not None:
         if result.returncode != 0:
-            error_message = util.error_record('Fail when running command:%s\n%s' % (command, result.stderr), logger, stream_handler, errIO)
+            error_message = util.error_record('Fail when running command:%s\n%s' % (command, result.stderr.read()), logger, stream_handler, errIO)
             with open(error_file, 'w') as f:
                 f.write(error_message)
     return error_message
@@ -139,21 +143,24 @@ def target_generator(cwd, target_files_loc, upper_bound) -> Path():
     round_count = 0
     line_count = 0
     no_more_file = False
+    upper_bound_enable = True
     # TODO:根据内存大小判断读取地址数目
     load_file = open(target_files[target_idx], 'r')
     while True:
         input_file_loc = os.path.join(cwd, f'target-{round_count}.txt')
         with open(input_file_loc, 'w') as input_file:
             while line_count < upper_bound:
-                while (line:= load_file.readline()) and (line_count < upper_bound):
+                while (line:= load_file.readline()) and (line_count < upper_bound or not upper_bound_enable):
                     input_file.writelines(line)
                     line_count += 1
-                if line_count < upper_bound:
+                if line_count <= upper_bound:
                     load_file.close()                    
                     target_idx += 1
                     if target_idx == len(target_files):
                         no_more_file = True
                         break
+                    upper_bound_enable = False
+                    # 当文件中地址数量小于upper bound，说明地址块已经足够小，不启用upper bound
                     load_file = open(target_files[target_idx], 'r')
         yield input_file_loc
         if no_more_file:
@@ -172,6 +179,7 @@ def zmap(cwd, uuid, config, net_info, myaddr, ipv6, target_files_loc, **kw):
         if not isinstance(args, dict):
             args = dict()
             args['args'] = dict()
+        args['args']['-p'] = str(args['port'])
         args['args']['-O'] = 'csv'
         args['args']['-o'] = '\"' + output_dir + '\"'
 
@@ -180,7 +188,7 @@ def zmap(cwd, uuid, config, net_info, myaddr, ipv6, target_files_loc, **kw):
             while True:
                 input_dir = next(input_file_gen)
                 command = zmap_command_parser(cwd, args, net_info, myaddr, ipv6, input_dir)
-                error_message = run_command(command, output_dir)
+                error_message = run_command(command, output_dir, Path(cwd, PID_FILE))
                 if error_message is None:
                     with open(full_output_dir, 'a') as  write_f:
                         with open(output_dir, 'r') as read_f:
@@ -206,22 +214,45 @@ def zmap(cwd, uuid, config, net_info, myaddr, ipv6, target_files_loc, **kw):
         logger.error('Error when running zmap task.\n', exc_info=True)
 
 def zgrab(cwd, uuid, config, myaddr, target_files_loc, **kw):
+    output_dir = os.path.join(cwd, 'output_single.json')
+    full_output_dir = os.path.join(cwd, 'output.json')
+
     try:
-        try:
-            zgrab_type = config['args']['type']
-        except:
-            raise Exception(logger.error('Zgrab task type of task %s not found' % (uuid), logger, stream_handler, errIO))
         zgrab_args = config['args'].get('args', None)
         if not isinstance(zgrab_args, dict):
             zgrab_args = dict()
-        zgrab_args['-f'] = '\"' + os.path.join(cwd, 'target.txt') + '\"'
-        zgrab_args['-o'] = '\"' + os.path.join(cwd, 'output.json') + '\"'
-        command = zgrab_command_parser(zgrab_type, zgrab_args, cwd)
+        try:
+            zgrab_type = config['args']['type']
+            zgrab_args['--port'] = str(config['args']['port'])
+        except:
+            raise Exception(logger.error('Zgrab task type or port of task %s not found' % (uuid), logger, stream_handler, errIO))
+        zgrab_args['-o'] = '\"' + output_dir + '\"'
 
-        error_message = run_command(command, os.path.join(cwd, 'output.json'))
+        try:
+            input_file_gen = target_generator(cwd, target_files_loc, SHARD_UPPER_BOUND)
+            while True:
+                input_dir = next(input_file_gen)
+                zgrab_args['-f'] = '\"' + input_dir + '\"'
+                command = zgrab_command_parser(zgrab_type, zgrab_args, cwd)
+                error_message = run_command(command, output_dir, Path(cwd) / PID_FILE)
+                if error_message is None:
+                    with open(full_output_dir, 'a') as  write_f:
+                        with open(output_dir, 'r') as read_f:
+                            read_f.readline()
+                            while line:= read_f.readline():
+                                write_f.writelines(line)
+                    os.remove(output_dir)
+                    os.remove(input_dir)
+                else:
+                    Path(output_dir).replace(full_output_dir)
+                    break
+        except StopIteration:
+            logger.debug('all target addresses have been covered.')
+
+
         url = util.api_url(config['scheduler']['addr'], '/submit/zgrab', config['scheduler']['port'])
-        file_dict = {os.path.join(cwd, 'output.json'):'result.json'}
-        md5 = util.gen_md5(os.path.join(cwd, 'output.json'))
+        file_dict = {full_output_dir:'result.json'}
+        md5 = util.gen_md5(full_output_dir)
         json_conf = json.dumps({'uuid':uuid, 'addr':myaddr, \
                                 'md5':{'result.json':md5}, 'error':error_message is not None})
         file_sender(url, file_dict, cwd, json_conf, uuid)
@@ -231,6 +262,9 @@ def zgrab(cwd, uuid, config, myaddr, target_files_loc, **kw):
                 
 def zMnG(cwd, uuid, config, net_info, myaddr, ipv6, target_files_loc, **kw):
     try:
+        output_dir = os.path.join(cwd, 'output_single.json')
+        full_output_dir = os.path.join(cwd, 'output.json')
+
         try:
             zgrab_type = config['args']['zgrab']['type']
         except:
@@ -242,34 +276,58 @@ def zMnG(cwd, uuid, config, net_info, myaddr, ipv6, target_files_loc, **kw):
         else:
             args = dict()
             args['args'] = dict()
+        args['args']['-p'] = str(config['args']['port'])
         args['args']['-O'] = 'csv'
         args['args']['-o'] = os.path.join(cwd, 'zmap_result.csv')
 
-        command = zmap_command_parser(cwd, args, net_info, myaddr, ipv6)
-        error_message = run_command(command, os.path.join(cwd, 'zmap_result.csv'))
-        if error_message is not None:
-            file_dict = {os.path.join(cwd, 'zmap_result.csv'):'result.json'}
-            md5 = util.gen_md5(os.path.join(cwd, 'zmap_result.csv'))
-            json_conf = json.dumps({'uuid':uuid, 'addr':myaddr, \
-                                'md5':{'result.json':md5}, 'error':error_message is not None})
-        else:
-            command = os.path.join(os.getcwd(), 'sort.sh') + ' ' + \
-                        'zmap_result.csv' + ' ' + \
-                        'zmap_sorted.csv' + ' ' + \
-                        cwd
-            error_message = run_command(command, os.path.join(cwd, 'output.json'))
+        try:
+            input_file_gen = target_generator(cwd, target_files_loc, SHARD_UPPER_BOUND)
+            while True:
+                input_dir = next(input_file_gen)
+                command = zmap_command_parser(cwd, args, net_info, myaddr, ipv6, input_dir)
+                error_message = run_command(command, output_dir, Path(cwd) / PID_FILE)
+                '''if error_message is not None:
+                    file_dict = {os.path.join(cwd, 'zmap_result.csv'):'result.json'}
+                    md5 = util.gen_md5(os.path.join(cwd, 'zmap_result.csv'))
+                    json_conf = json.dumps({'uuid':uuid, 'addr':myaddr, \
+                                        'md5':{'result.json':md5}, 'error':error_message is not None})
+                    return'''
+                if error_message is None:
+                    command = os.path.join(os.getcwd(), 'sort.sh') + ' ' + \
+                                'zmap_result.csv' + ' ' + \
+                                'zmap_sorted.csv' + ' ' + \
+                                cwd
+                    error_message = run_command(command, output_dir, Path(cwd) / PID_FILE)
 
-            if error_message is None:
-                zgrab_args = config['args']['zgrab'].get('args', None)
-                if not isinstance(zgrab_args, dict):
-                    zgrab_args = dict()
-                zgrab_args['-f'] = os.path.join(cwd, 'zmap_sorted.csv')
-                zgrab_args['-o'] = '\"' + os.path.join(cwd, 'output.json') + '\"'
-                command = zgrab_command_parser(zgrab_type, zgrab_args, cwd)
+                    if error_message is None:
+                        zgrab_args = config['args']['zgrab'].get('args', None)
+                        if not isinstance(zgrab_args, dict):
+                            zgrab_args = dict()
+                        zgrab_args['--port'] = str(config['args']['port'])
+                        zgrab_args['-f'] = os.path.join(cwd, 'zmap_sorted.csv')
+                        zgrab_args['-o'] = '\"' + output_dir + '\"'
+                        command = zgrab_command_parser(zgrab_type, zgrab_args, cwd)
 
-                error_message = run_command(command, os.path.join(cwd, 'output.json'))
-            file_dict = {os.path.join(cwd, 'output.json'):'result.json'}
-            md5 = util.gen_md5(os.path.join(cwd, 'output.json'))
+                        error_message = run_command(command, output_dir, Path(cwd) / PID_FILE)
+                        if error_message is None:
+                            with open(full_output_dir, 'a') as  write_f:
+                                with open(output_dir, 'r') as read_f:
+                                    read_f.readline()
+                                    while line:= read_f.readline():
+                                        write_f.writelines(line)
+                            os.remove(output_dir)
+                            os.remove(input_dir)
+                            os.remove(os.path.join(cwd, 'zmap_result.csv'))
+                            os.remove(os.path.join(cwd, 'zmap_sorted.csv'))
+                if error_message is not None:
+                    Path(output_dir).replace(full_output_dir)
+                    break
+        except StopIteration:
+            logger.debug('all target addresses have been covered.')
+
+
+            file_dict = {full_output_dir:'result.json'}
+            md5 = util.gen_md5(full_output_dir)
             json_conf = json.dumps({'uuid':uuid, 'addr':myaddr, \
                                     'md5':{'result.json':md5}, 'error':error_message is not None})
         url = util.api_url(config['scheduler']['addr'], '/submit/zMnG', config['scheduler']['port'])
@@ -280,42 +338,65 @@ def zMnG(cwd, uuid, config, net_info, myaddr, ipv6, target_files_loc, **kw):
 def lzr(cwd, uuid, config, net_info, myaddr, ipv6, target_files_loc, **kw):
     try:
         zmap_args = config.get('args', None)
+        output_dir = os.path.join(cwd, 'output_single.json')
+        full_output_dir = os.path.join(cwd, 'output.json')
+
         if isinstance(zmap_args, dict):
             zmap_args = zmap_args.get('zmap')
         else:
             zmap_args = dict()
             zmap_args['args'] = dict()
+        zmap_args['args']['-p'] = str(config['args']['port'])
         zmap_args['args']['-O'] = 'json'
         zmap_args['args']['-f'] = '"saddr,daddr,sport,dport,seqnum,acknum,window"'
-        port = zmap_args['args']['-p']
+        port = str(config['args']['port'])
 
-        command = zmap_command_parser(cwd, zmap_args, net_info, myaddr, ipv6)
+        try:
+            input_file_gen = target_generator(cwd, target_files_loc, SHARD_UPPER_BOUND)
+            while True:
+                input_dir = next(input_file_gen)
+                command = zmap_command_parser(cwd, zmap_args, net_info, myaddr, ipv6, input_dir)
 
-        lzr_args = config.get('args', None)
-        if isinstance(lzr_args, dict):
-            lzr_args = lzr_args.get('lzr')
-        else:
-            lzr_args = dict()
-        lzr_args['-feedZGrab'] = ''
-        lzr_args['-f'] = '\"/dev/null\"'
-        command += ' | ' + lzr_command_parser(cwd, lzr_args, net_info, ipv6)
+                lzr_args = config.get('args', None)
+                if isinstance(lzr_args, dict):
+                    lzr_args = lzr_args.get('lzr')
+                else:
+                    lzr_args = dict()
+                lzr_args['-feedZGrab'] = ''
+                lzr_args['-f'] = '\"/dev/null\"'
+                command += ' | ' + lzr_command_parser(cwd, lzr_args, net_info, ipv6)
 
-        with open(os.path.join(os.getcwd(), 'lzr_zgrab.ini'), 'r') as fr:
-            with open(os.path.join(cwd, 'zgrab.ini'), 'w') as fw:
-                for line in fr.readlines():
-                    if 'port=x' in line:
-                        fw.writelines('port=' + port + '\n')
-                    else:
-                        fw.writelines(line)
-        
-        command += ' | /usr/local/sbin/zgrab multiple -c \"'
-        command += os.path.join(cwd, 'zgrab.ini')
-        command += '\" -o \"' + os.path.join(cwd, 'output.json') + '\"'
+                with open(os.path.join(os.getcwd(), 'lzr_zgrab.ini'), 'r') as fr:
+                    with open(os.path.join(cwd, 'zgrab.ini'), 'w') as fw:
+                        for line in fr.readlines():
+                            if 'port=x' in line:
+                                fw.writelines('port=' + port + '\n')
+                            else:
+                                fw.writelines(line)
+                
+                command += ' | /usr/local/sbin/zgrab multiple -c \"'
+                command += os.path.join(cwd, 'zgrab.ini')
+                command += '\" -o \"' + output_dir + '\"'
 
-        error_message = run_command(command, os.path.join(cwd, 'output.json'))
+                error_message = run_command(command, output_dir, Path(cwd) / PID_FILE)
+                if error_message is None:
+                    with open(full_output_dir, 'a') as  write_f:
+                        with open(output_dir, 'r') as read_f:
+                            read_f.readline()
+                            while line:= read_f.readline():
+                                write_f.writelines(line)
+                    os.remove(output_dir)
+                    os.remove(input_dir)
+                else:
+                    Path(output_dir).replace(full_output_dir)
+                    break
+        except StopIteration:
+            logger.debug('all target addresses have been covered.')
+
+
         url = util.api_url(config['scheduler']['addr'], '/submit/lzr', config['scheduler']['port'])
-        file_dict = {os.path.join(cwd, 'output.json'):'result.json'}
-        md5 = util.gen_md5(os.path.join(cwd, 'output.json'))
+        file_dict = {full_output_dir:'result.json'}
+        md5 = util.gen_md5(full_output_dir)
         json_conf = json.dumps({'uuid':uuid, 'addr':myaddr, \
                                 'md5':{'result.json':md5}, 'error':error_message is not None})
         file_sender(url, file_dict, cwd, json_conf, uuid)

@@ -89,15 +89,16 @@ def file_integrater(file_dict, config, chunk_size = 1048576):
         with open('tmp_config', 'r') as fp:
             f.write(str(os.path.getsize('tmp_config')) + '\n')
             f.write(fp.read())
-        for local_name, remote_name in file_dict.items():
-            f.write(remote_name + '\n')
-            f.write(str(os.path.getsize(local_name)) + '\n')
-            with open(local_name, 'r') as fp:
-                while True:
-                    chunk = fp.read(chunk_size)
-                    if not chunk:
-                        break
-                    f.write(chunk)
+        if isinstance(file_dict, dict):
+            for local_name, remote_name in file_dict.items():
+                f.write(remote_name + '\n')
+                f.write(str(os.path.getsize(local_name)) + '\n')
+                with open(local_name, 'r') as fp:
+                    while True:
+                        chunk = fp.read(chunk_size)
+                        if not chunk:
+                            break
+                        f.write(chunk)
     os.remove('tmp_config')
     return os.path.join(os.getcwd(), 'integrated'), hashlib.md5(config.encode()).hexdigest()
  

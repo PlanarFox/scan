@@ -6,14 +6,14 @@ args:
   probe:
     - 'localhost:8888'
     - 'localhost:9999'
-  target: 'list.txt'
+  prefix_len: 4
+  ipv6: 'disable'
   port: 
     - 443
     - 80
-  shards: 10
   rand_seed: 45
   method: 'optimize'
   args:
-    -M: 'ipv6_tcp_synscan'
     -f: '"saddr"'
+    -B: '1M'
 
