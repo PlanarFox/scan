@@ -2,11 +2,17 @@ scheduler:
   addr: 'localhost'
   port: '80'
 type: 'zmap'
+db:
+  username: 'admin'
+  password: '1qaz@WSX#EDC'
+  addr: 'http://192.168.1.114:11000'
+  public_key: 
+  private_key: 
+  success_only: false
 args:
   probe:
     - 'localhost:8888'
-    - 'localhost:9999'
-  prefix_len: 4
+  target: 'list_v4.txt'
   ipv6: 'disable'
   port: 
     - 443

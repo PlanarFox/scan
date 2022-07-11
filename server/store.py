@@ -91,7 +91,6 @@ def store_single_task_result(cwd, uuid, task_type, api, token, crypto, success_o
                 for protocol, info in json_line['data'].items():
                     if success_only and info['status'] != 'success':
                         continue
-                    print(data_template)
                     json_protocol = deepcopy(data_template['services'][0])
                     json_protocol['protocol'] = protocol
                     json_protocol['port'] = str(port)
