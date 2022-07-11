@@ -11,6 +11,8 @@ from io import StringIO
 
 SHARD_UPPER_BOUND = 10
 PID_FILE = 'task.pid'
+ZMAP_RESULT_REMOTE_FILENAME = 'result.txt'
+ZGRAB_RESULT_REMOTE_FILENAME = 'result.json'
 
 logger = logging.getLogger('probe')
 errIO = StringIO()
@@ -205,10 +207,10 @@ def zmap(cwd, uuid, config, net_info, myaddr, ipv6, target_files_loc, **kw):
               
         
         url = util.api_url(config['scheduler']['addr'], '/submit/zmap', config['scheduler']['port'])
-        file_dict = {full_output_dir:'result.txt'}
+        file_dict = {full_output_dir:ZMAP_RESULT_REMOTE_FILENAME}
         md5 = util.gen_md5(full_output_dir)
         json_conf = json.dumps({'uuid':uuid, 'addr':myaddr, \
-                                'md5':{'result.txt':md5}, 'error':error_message is not None})
+                                'md5':{ZMAP_RESULT_REMOTE_FILENAME:md5}, 'error':error_message is not None})
         file_sender(url, file_dict, cwd, json_conf, uuid)
     except:
         logger.error('Error when running zmap task.\n', exc_info=True)
@@ -251,10 +253,10 @@ def zgrab(cwd, uuid, config, myaddr, target_files_loc, **kw):
 
 
         url = util.api_url(config['scheduler']['addr'], '/submit/zgrab', config['scheduler']['port'])
-        file_dict = {full_output_dir:'result.json'}
+        file_dict = {full_output_dir:ZGRAB_RESULT_REMOTE_FILENAME}
         md5 = util.gen_md5(full_output_dir)
         json_conf = json.dumps({'uuid':uuid, 'addr':myaddr, \
-                                'md5':{'result.json':md5}, 'error':error_message is not None})
+                                'md5':{ZGRAB_RESULT_REMOTE_FILENAME:md5}, 'error':error_message is not None})
         file_sender(url, file_dict, cwd, json_conf, uuid)
 
     except:
@@ -326,10 +328,10 @@ def zMnG(cwd, uuid, config, net_info, myaddr, ipv6, target_files_loc, **kw):
             logger.debug('all target addresses have been covered.')
 
 
-            file_dict = {full_output_dir:'result.json'}
-            md5 = util.gen_md5(full_output_dir)
-            json_conf = json.dumps({'uuid':uuid, 'addr':myaddr, \
-                                    'md5':{'result.json':md5}, 'error':error_message is not None})
+        file_dict = {full_output_dir:ZGRAB_RESULT_REMOTE_FILENAME}
+        md5 = util.gen_md5(full_output_dir)
+        json_conf = json.dumps({'uuid':uuid, 'addr':myaddr, \
+                                'md5':{ZGRAB_RESULT_REMOTE_FILENAME:md5}, 'error':error_message is not None})
         url = util.api_url(config['scheduler']['addr'], '/submit/zMnG', config['scheduler']['port'])
         file_sender(url, file_dict, cwd, json_conf, uuid)
     except:
@@ -395,10 +397,10 @@ def lzr(cwd, uuid, config, net_info, myaddr, ipv6, target_files_loc, **kw):
 
 
         url = util.api_url(config['scheduler']['addr'], '/submit/lzr', config['scheduler']['port'])
-        file_dict = {full_output_dir:'result.json'}
+        file_dict = {full_output_dir:ZGRAB_RESULT_REMOTE_FILENAME}
         md5 = util.gen_md5(full_output_dir)
         json_conf = json.dumps({'uuid':uuid, 'addr':myaddr, \
-                                'md5':{'result.json':md5}, 'error':error_message is not None})
+                                'md5':{ZGRAB_RESULT_REMOTE_FILENAME:md5}, 'error':error_message is not None})
         file_sender(url, file_dict, cwd, json_conf, uuid)
         
     except:

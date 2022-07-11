@@ -33,24 +33,7 @@ def zmap(cwd, uuid, probe, error, **kw):
             logger.info('Running command:%s\n%s', command, cmdResult.stdout)
             if cmdResult.returncode != 0:
                 return False, util.error_record('Failed when sorting result:\n%s' % (cmdResult.stderr), logger, stream_handler, errIO)
-            '''
-            with open(os.path.join(probe_cwd, 'result_sorted.txt'), 'r') as result:
-                while True:
-                    result_line = result.readline()
-                    if not result_line:
-                        break
-                    if result_line != '\n':
-                        count += 1
-            with open(os.path.join(probe_cwd, 'target.txt'), 'r') as target:
-                while True:
-                    line = target.readline()
-                    if not line:
-                        break
-                    if line != '\n':
-                        total_num += 1 
-            '''
             with open(os.path.join(probe_cwd, 'done'), 'w') as f:
-                #f.write(json.dumps({'total':total_num, 'hit':count}))
                 f.write('done')
             logger.info('Result of task %s, probe %s has analysed', uuid, probe)
         else:

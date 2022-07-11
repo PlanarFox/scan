@@ -1,11 +1,18 @@
 scheduler:
-  addr: 'localhost'
-  port: '80'
+  addr: '[2001:da8:1001:7:211:65:193:11]'
+  port: '8080'
 type: 'zMnG'
+db:
+  username: 'admin'
+  password: '1qaz@WSX#EDC'
+  addr: 'http://localhost:11000'
+  public_key: 
+  private_key: 
+  success_only: false
 args:
   probe:
-    - 'localhost:8888'
-  target: 'list.txt'
+    - '[2001:da8:1001:7:211:65:193:11]:8888'
+  target: '500w_v6.txt'
   port: 
     443: 'tls'
     80: 'http'
@@ -16,4 +23,5 @@ args:
     args:
       -M: 'ipv6_tcp_synscan'
       -f: '"saddr"'
+      -B: '50M'
   zgrab:

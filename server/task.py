@@ -16,6 +16,8 @@ import logging
 from io import StringIO
 import kill
 
+CONFIG_FILE = 'config.json'
+
 logger = logging.getLogger('server')
 errIO = StringIO()
 stream_handler = logging.StreamHandler(errIO)
@@ -76,7 +78,7 @@ def create_task():
         logger.error('Failed when create task directory', exc_info=True)
         return util.bad_request('Failed when create task directory')
 
-    f = open(os.path.join(cwd, 'config.json'), 'w')
+    f = open(os.path.join(cwd, CONFIG_FILE), 'w')
     f.write(json.dumps(config))
     f.close()
 
@@ -110,25 +112,6 @@ def return_result(task_type, task_id):
         logger.error(message)
         return util.bad_request(message)
     
-    '''
-    valid, message = getattr(result, task_type)(cwd)
-    if not valid:
-        return util.bad_request(message=message)
-    logger.info('Returning task data file.')
-
-    def generate():
-        with open(os.path.join(cwd, 'result'), 'rb') as f:
-            while True:
-                chunk = f.read(1048576)
-                if not chunk:
-                    break
-                yield chunk
-    
-    response = Response(generate(), mimetype='text/plain')
-    response.headers['Content-Disposition'] = 'attachment; filename=result.txt'
-    response.headers['content-length'] = os.path.getsize(os.path.join(cwd, 'result'))
-    '''
-
     return result.get_task_result(cwd, task_type)
 
     #return send_file(os.path.join(cwd, 'result'), mimetype='text/plain', as_attachment=True)

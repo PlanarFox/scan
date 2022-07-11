@@ -2,15 +2,27 @@ scheduler:
   addr: 'localhost'
   port: '80'
 type: 'zMnG'
+db:
+  username: 'admin'
+  password: '1qaz@WSX#EDC'
+  addr: 'http://192.168.1.114:11000'
+  public_key: 
+  private_key: 
+  success_only: false
 args:
   ipv6: 'disable'
-  refresh_netinfo: false
+  refresh_netinfo: true
   probe:
-    - '192.168.0.100:8888'
+    - 'localhost:8888'
   target: 'list_v4.txt'
-  port: 443
+  port: 
+    443: 'tls'
+    80: 'http'
+  shards: 10
+  rand_seed: 45
+  method: 'optimize'
   zmap:
     args:
       -f: '"saddr"'
+      -B: '50M'
   zgrab:
-    type: 'tls'

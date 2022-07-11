@@ -2,7 +2,8 @@ import os
 from pathlib import Path
 import sys
 sys.path.append(os.path.join(os.getcwd(), '..'))
-from task_creation import SUB_TASK_FILE
+from task_creation import SUB_TASK_FILE, PARENT_UUID_FILE
+import util
 
 def single_task_status(cwd, uuid) -> tuple[bool, str]:
     isdone = True
@@ -27,7 +28,10 @@ def single_task_status(cwd, uuid) -> tuple[bool, str]:
         return False, f'Task {uuid} hasn\'t done yet.'
     return True, ''
 
-def task_status(cwd, uuid) -> tuple[bool, str]:
+def task_status(cwd, uuid, trace_parent = False) -> tuple[bool, str]:
+    if trace_parent:
+        cwd, uuid = util.get_parent_task_dir(cwd, uuid)
+            
     if (Path(cwd) / SUB_TASK_FILE).exists():
         sub_tasks = list(map(str.strip, open(Path(cwd, SUB_TASK_FILE)).readlines()))
         cwd = Path(cwd).resolve().parent

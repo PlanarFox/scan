@@ -19,6 +19,7 @@ logger = logging.getLogger('server')
 SHARD_OUT_DIR = 'target_shards'
 SUB_TASK_FILE = 'sub_task_uuid.txt'
 ORIGIN_TARGET_FILE = 'target'
+PARENT_UUID_FILE = 'parent_uuid'
 
 class AssignMethod:
     """ 探测任务分配方法
@@ -139,90 +140,6 @@ def target_file_split(cwd, origin, shards_num) -> Path:
             fp.close()
     return out_dir
 
-'''
-def get_num_args(cwd, config):
-    try:
-        args = config['args']
-        with open(os.path.join(cwd, 'target'), 'r') as f:
-            num = 0
-            for line in f:
-                num += 1
-        num = num // len(args['probe'])
-    except KeyError:
-        logger.error('Wrong task config.', exc_info=True)
-        return None, 'Wrong task config in key field:args, probe'
-    return args, num
-
-def target_split(cwd, probe, probe_index, num, total_probe, f, filename):
-    path = Path(cwd) / probe
-    try:
-        if path.exists:
-            raise Exception('Task directory already exists. UUID may be duplicated.')
-        os.mkdir(path)
-        #if os.path.isdir(os.path.join(cwd, probe)):
-        #    os.rmdir(os.path.join(cwd, probe))
-        #os.mkdir(os.path.join(cwd, probe))
-    except:
-        logger.error('Error when creating probe directory', exc_info=True)
-        return False, 'Error when creating probe directory'
-    with open(path / filename, 'w') as fp:
-        if probe_index+1 != total_probe:
-            for i in range(num):
-                line = f.readline()
-                fp.writelines(line)
-        else:
-            while True:
-                line = f.readline()
-                if not line:
-                    break
-                fp.writelines(line)
-'''
-
-def zmap_like(cwd, config, task_id, info_dict, location='/tasks/zmap', shards_dir=None):
-    try:
-        args = config['args']
-    except KeyError:
-        logger.error('Wrong task config.', exc_info=True)
-        return None, 'Wrong task config in key field:args'
-
-    if args.get('target', None):
-
-        origin_target = Path(cwd) / ORIGIN_TARGET_FILE
-        if shards_dir is None:
-            shards_dir = target_file_split(cwd, origin_target, args.get('shards', 10))
-        try:
-            assignment = task_assign(len(list(shards_dir.iterdir())), info_dict['probe'], args.get('rand_seed', 0),
-                                    args['method'], info_dict['bandwidth'], info_dict['cpu'], info_dict['disk'])
-        except KeyError:
-            logger.error('Wrong task config.', exc_info=True)
-            return None, 'Wrong task config in key field:probe or rand_seed'
-        
-        shards_list = list(shards_dir.iterdir())
-        for probe in info_dict['probe']:
-            try:
-                probe_path = Path(cwd) / 'probe' / probe
-                Path.mkdir(probe_path, parents=True)
-                with open(probe_path / 'assignment.txt', 'w') as f:
-                    json.dump([str(shards_list[idx]) for idx in assignment[probe]], f)
-
-                url = util.api_url(probe, location)
-                #file_dict = {os.path.join(os.path.join(cwd, probe), 'target.txt'):'target.txt'}
-                file_dict = {str(shards_list[idx]):str(shards_list[idx].name) for idx in assignment[probe]}
-                md5 = {str(shards_list[idx].name):util.gen_md5(str(shards_list[idx])) for idx in assignment[probe]}
-                integrated, conf_md5 = util.file_integrater(file_dict, probe_path,\
-                                            json.dumps({'uuid':task_id, 'probe':probe, 'config':config, 'md5':md5}))
-                with open(integrated, 'rb') as fp:
-                    r = requests.post(url, data = fp, params={'md5':conf_md5}, stream=True)
-                if r.status_code != 200:
-                    logger.error('Task distribution to %s failed:%s', probe, r.text)
-                    return False, 'Task distribution failed:' + r.text
-                os.remove(integrated)
-            except:
-                logger.error('Error when posting.', exc_info=True)
-                return False, 'Error occured when posting.'
-
-    return True, None
-
 def create_single_task(cwd, task_type, config, task_id, info_dict, shards_dir=None):
     try:
         args = config['args']
@@ -303,24 +220,6 @@ def create_single_task(cwd, task_type, config, task_id, info_dict, shards_dir=No
     return True, None
 
 
-'''
-def zMnG(cwd, config, task_id, info_dict, shards_dir=None):
-    valid, message = zgrab_like(cwd, config, task_id, info_dict, '/tasks/zMnG', shards_dir)
-    return valid, message
-
-def zgrab(cwd, config, task_id, info_dict, shards_dir=None):
-    valid, message = zgrab_like(cwd, config, task_id, info_dict, shards_dir=shards_dir)
-    return valid, message
-
-def zmap(cwd, config, task_id, info_dict, shards_dir=None):
-    valid, message = zmap_like(cwd, config, task_id, info_dict, shards_dir=shards_dir)
-    return valid, message
-
-def lzr(cwd, config, task_id, info_dict, shards_dir=None):
-    valid, message = zmap_like(cwd, config, task_id, info_dict, '/tasks/lzr', shards_dir)
-    return valid, message
-'''
-
 def create(cwd, config, task_id, info_dict):
     try:
         ports = config['args']['port']
@@ -332,7 +231,7 @@ def create(cwd, config, task_id, info_dict):
 
     mod = sys.modules[__name__]
     if isinstance(ports, str):
-        valid, message = getattr(mod, config['type'])(cwd, config, task_id, info_dict)
+        valid, message = create_single_task(cwd, config['type'], config, task_id, info_dict)
         return valid, message
     else:
         try:
@@ -362,6 +261,8 @@ def create(cwd, config, task_id, info_dict):
                 Path.mkdir(sub_task_dir)
                 with open(sub_task_dir / 'config.json', 'w') as f:
                     json.dump(sub_task_config, f)
+                with open(sub_task_dir / PARENT_UUID_FILE, 'w') as f:
+                    f.writelines(task_id)
                 os.symlink(str(cwd / task_id / ORIGIN_TARGET_FILE), str(sub_task_dir / ORIGIN_TARGET_FILE))
                 if i == 0:
                     valid, message = create_single_task(sub_task_dir, sub_task_config['type'],

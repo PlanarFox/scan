@@ -10,8 +10,8 @@ test/*
 lzr
 lzr-v6/*
 lzr-v6
-probe/hw_info.json
 probe/v6_netinfo.json
 probe_test/*
 
 probe/v4_netinfo.json
+500w_v6.txt

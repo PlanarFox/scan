@@ -30,19 +30,7 @@ def generate(filepath):
 
 
 def zmap(cwd):
-    total = 0
-    count = 0
-    try:
-        '''
-        for item in os.listdir(cwd):
-            path = os.path.join(cwd, item)
-            if os.path.isdir(path):
-                with open(os.path.join(path, 'done'), 'r') as f:
-                    statistics = json.loads(f.read())
-                    total += statistics['total']
-                    count += statistics['hit']
-        '''
-        
+    try:        
         with open(os.path.join(cwd, SINGLE_RESULT_FILENAME), 'w') as f:
             #f.writelines(['total:'+str(total), '\nhit:'+str(count), '\n-------------------\n'])
             probe_path = os.path.join(cwd, 'probe')
@@ -95,9 +83,10 @@ def get_task_result(cwd, task_type) -> Response:
             all_result = zipfile.ZipFile(result_zip_path, 'w', zipfile.ZIP_DEFLATED)
             cwd = Path(cwd).resolve().parent
             for sub_task in sub_tasks:
-                valid, message = getattr(mod, task_type)(cwd / sub_task)
-                if not valid:
-                    return util.bad_request(message)
+                if not (cwd / sub_task / SINGLE_RESULT_FILENAME).exists():
+                    valid, message = getattr(mod, task_type)(cwd / sub_task)
+                    if not valid:
+                        return util.bad_request(message)
                 else:
                     with open(cwd / sub_task / 'config.json', 'r') as f:
                         conf = json.load(f)
@@ -107,9 +96,10 @@ def get_task_result(cwd, task_type) -> Response:
             response.headers['Content-Disposition'] = f'attachment; filename={RESULT_ZIP_FILE}'
             response.headers['content-length'] = os.path.getsize(str(result_zip_path))
         else:
-            valid, message = getattr(mod, task_type)(cwd)
-            if not valid:
-                return util.bad_request(message)
+            if not (Path(cwd) / SINGLE_RESULT_FILENAME).exists():
+                valid, message = getattr(mod, task_type)(cwd)
+                if not valid:
+                    return util.bad_request(message)
             response = Response(generate(Path(cwd) / SINGLE_RESULT_FILENAME), mimetype='text/plain')
             response.headers['Content-Disposition'] = f'attachment; filename={SINGLE_RESULT_FILENAME}'
             response.headers['content-length'] = os.path.getsize(str(Path(cwd) / SINGLE_RESULT_FILENAME))

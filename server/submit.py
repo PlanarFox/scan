@@ -10,6 +10,8 @@ import json
 import submit_proc
 import logging
 from io import StringIO
+import threading
+import store
 
 logger = logging.getLogger('server')
 errIO = StringIO()
@@ -60,6 +62,10 @@ def submition_recv(task_type):
     if not valid:
         return util.bad_request(message=message)
     logger.info('Data from %s submitted.', probe)
+
+    t1 = threading.Thread(target=store.store_result, args=(cwd, uuid))
+    t1.start()
+
     return util.ok()
 
     
